@@ -93,7 +93,7 @@ To check the generated code, you can use the `-p, --print` option.
 ```sh
 pppd rec -i math -b 'dups=set()'  -l5 -t 1:i,2:i,5:b  -e 'ok = f1 > 1000 or f5'  -f 'f1 not in dups' -f 'ok' 'dups.add(f2)' rec -a 'print(len(dups))' -p
 ```
-The code is output as follows.
+The generated code is output as follows.
 ```python
 import sys
 from functools import partial
@@ -145,15 +145,15 @@ print(len(dups))
 ### Save generated code to a file. `-o PATH, --output PATH`
 For writing more complex code, it's a good practice to create a template code with pypipe and edit the templated code manually. Here's the process you can follow:
 
-1 -  Create a template code with pypipe and save it to a file, for example:
-```sh
-ppp --output /tmp/pipe.py ...
-```
-2 - Edit the code in /tmp/pipe.py to suit your needs.
-3 - Execute the modified code by piping input to it, for example:
-```sh
-cat sample.txt | /tmp/pipe.py
-```
+1.  Create a template code with pypipe and save it to a file, for example:
+    ```sh
+    ppp --output /tmp/pipe.py ...
+    ```
+2. Edit the code in /tmp/pipe.py to suit your needs.
+3. Execute the modified code by piping input to it, for example:
+   ```sh
+   cat sample.txt | /tmp/pipe.py
+   ```
 
 ### Default code
 If no code is specified in the arguments, pypipe adds a predefined default code. For example, the default code in Line mode is `'line'`.
