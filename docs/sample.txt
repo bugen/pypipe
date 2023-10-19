@@ -1,0 +1,6 @@
+Country	Region	Population	Capital	Language
+USA	North America	331	WashingtonDC	English
+Japan	Asia	126	Tokyo	Japanese
+China	Asia	1404	Beijing	Mandarin
+Brazil	South America	212	Brasilia	Portuguese
+France	Europe	67	Paris	French
