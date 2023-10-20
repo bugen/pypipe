@@ -29,7 +29,7 @@ import argparse
 from os import chmod
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 INDENT = " " * 4
@@ -41,22 +41,14 @@ FIELD_TYPE_TMPL = {
     "j": r"json.loads({})",
 }
 
-PRINT_FUNC = r"""
-def _print(*args, delimiter='\t'):
-    if len(args) == 1 and isinstance(args[0], (list, tuple)):
-        print(*args[0], sep=delimiter)
-    else:
-        print(*args, sep=delimiter)
-"""
-
 TEMPLATE_LINE = r"""
 {imp}
-
 
 {pre}
 
 for i, line in enumerate(sys.stdin, 1):
     line = line.rstrip("\r\n")
+    l = line  # ABBREV
 {loop_head}
 {loop_filter}
 {loop_body}
@@ -64,10 +56,25 @@ for i, line in enumerate(sys.stdin, 1):
 {post}
 """
 
-
 TEMPLATE_REC = r"""
 {imp}
 
+{parse_header}
+{pre}
+
+for i, line in enumerate(sys.stdin, 1):
+    line = line.rstrip("\r\n")
+    rec = line.split('{delimiter}')
+    r = rec  # ABBREV
+{loop_head}
+{loop_filter}
+{loop_body}
+
+{post}
+"""
+
+TEMPLATE_CSV = r"""
+{imp}
 
 def _write(*args, writer=None):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
@@ -76,37 +83,24 @@ def _write(*args, writer=None):
         writer.writerow(args)
 
 
-{pre}
-
-{loop}
-
-{post}
-"""
-
-LOOP_REC = r"""
-for i, line in enumerate(sys.stdin, 1):
-    line = line.rstrip("\r\n")
-    rec = line.split('{delimiter}')
-    r = rec  # ABBREV
-{loop_head}
-{loop_filter}
-{loop_body}
-"""
-
-LOOP_REC_CSV = r"""
 reader = csv.reader(sys.stdin, {reader_opts})
 writer = csv.writer(sys.stdout, {writer_opts})
 _w = writer.writerow   # ABBREV
+{parse_header}
+
+{pre}
+
 for i, rec in enumerate(reader, 1):
     r = rec  # ABBREV
 {loop_head}
 {loop_filter}
 {loop_body}
+
+{post}
 """
 
 TEMPLATE_TEXT = r"""
 {imp}
-
 
 {pre}
 
@@ -118,12 +112,11 @@ TEMPLATE_TEXT = r"""
 TEMPLATE_FILE = r"""
 {imp}
 
-
 def _open(path):
     if path.suffix == '.gz':
-        return gzip.open(path, 'rt')
+        return gzip.open(path, '{mode}')
     else:
-        return open(path)
+        return open(path, '{mode}')
 
 {pre}
 
@@ -138,6 +131,13 @@ for i, line in enumerate(sys.stdin, 1):
 {post}
 """
 
+PRINT_FUNC = r"""
+def _print(*args, delimiter='\t'):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        print(*args[0], sep=delimiter)
+    else:
+        print(*args, sep=delimiter)
+"""
 
 COUNTER_POST = r"""
 for v, c in counter.most_common():
@@ -204,16 +204,6 @@ def extend_codes(codes, comment=None):
     return not_empty_codes
 
 
-def gen_loop_filter(args, level=1):
-    filters = ["# LOOP FILTER"]
-    if args.filters:
-        for f in args.filters:
-            if not f.strip():
-                continue
-            filters.append('if not ({}): continue'.format(f.strip()))
-    return "\n".join(indent(c, level=level) for c in filters)
-
-
 def gen_import(args):
     codes = ["# IMPORT"]
     codes.append("import sys")
@@ -221,15 +211,17 @@ def gen_import(args):
 
     if "json" in args and args.json:
         codes.append("import json")
+
+    if "field_type" in args and "j" in [args.field_type.values()]:
+        codes.append("import json")
+
     if args.counter:
         codes.append("from collections import Counter")
 
-    # REC
-    if args.command == "rec":
-        if args.with_csv:
-            codes.append("import csv")
-        if any(args.field_type[f] == "j" for f in args.field_type):
-            codes.append("import json")
+    # CSV
+    if args.command == "csv":
+        codes.append("import csv")
+
     # FILE
     if args.command == "file":
         codes.append("import gzip")
@@ -246,10 +238,10 @@ def gen_import(args):
 
 def gen_pre(args):
     codes = ["# PRE"]
-    codes.append(r'_p = partial(print, sep="\t")  #ABBREV')
-    codes.append(r'n, s, b, l, d, S = 0, "", False, [], {}, set()  #ABBREV')
+    codes.append(r'_p = partial(print, sep="\t")  # ABBREV')
+    codes.append(r'I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV')
 
-    if not args.no_wrapper:
+    if not args.no_wrapping:
         codes.append(PRINT_FUNC)
 
     if args.counter:
@@ -271,6 +263,51 @@ def gen_post(args):
     return "\n".join(codes)
 
 
+def gen_body(args, default_code, wrapper, level=1):
+    loop_body_codes = extend_codes(args.codes, "BODY")
+    if len(loop_body_codes) == 1:
+        loop_body_codes.append(default_code)  # set default code
+    if not args.no_wrapping:
+        if args.counter:
+            loop_body_codes[-1] = r"counter[{}] += 1".format(loop_body_codes[-1])
+        else:
+            loop_body_codes[-1] = wrapper.format(loop_body_codes[-1])
+    return "\n".join(indent(c, level=level) for c in loop_body_codes)
+
+
+def gen_loop_filter(args, level=1):
+    filters = ["# LOOP FILTER"]
+    if args.filters:
+        for f in args.filters:
+            if not f.strip():
+                continue
+            filters.append('if not ({}): continue'.format(f.strip()))
+    return "\n".join(indent(c, level=level) for c in filters)
+
+
+def gen_loop_head_rec_csv(args):
+    loop_head_codes = ["# LOOP HEAD"]
+    if args.field_type:
+        # ex) if len(rec) > 16 and rec[16]: rec[16] = int(rec[16])
+        for f, t in args.field_type.items():
+            loop_head_codes.append(
+                "if len(rec) > {0} and rec[{0}]: rec[{0}] = {1}".format(
+                    f - 1, FIELD_TYPE_TMPL[t].format(f"rec[{f-1}]"))
+            )
+    if args.field_length:
+        # ex) f1, f2, f3, f4 = r[:4]
+        loop_head_codes.append("{} = {}".format(
+            ", ".join(f"f{i+1}" for i in range(args.field_length)),
+            f"r[:{args.field_length}]",
+        ))
+    if args.header:
+        loop_head_codes.append("dic = dict(zip(header, rec))")
+        loop_head_codes.append("d = dic # ABBREV")
+
+    loop_head_codes.extend(extend_codes(args.loop_heads))
+    return "\n".join(indent(c) for c in loop_head_codes)
+
+
 def line_handler(args):
 
     def gen_loop_head():
@@ -281,108 +318,53 @@ def line_handler(args):
         loop_head_codes.extend(extend_codes(args.loop_heads))
         return "\n".join(indent(c) for c in loop_head_codes)
 
-    def gen_loop_body():
-        loop_body_codes = extend_codes(args.codes, "LOOP BODY")
-        if len(loop_body_codes) == 1:
-            loop_body_codes.append("line")  # set default code
-        if not args.no_wrapper:
-            if args.counter:
-                loop_body_codes[-1] = r"counter[{}] += 1".format(loop_body_codes[-1])
-            else:
-                loop_body_codes[-1] = r"_print({})".format(loop_body_codes[-1])
-        return "\n".join(indent(c) for c in loop_body_codes)
-
     code = TEMPLATE_LINE.format(
         imp=gen_import(args),
         pre=gen_pre(args),
         loop_head=gen_loop_head(),
         loop_filter=gen_loop_filter(args),
-        loop_body=gen_loop_body(),
+        loop_body=gen_body(args, "line", r"_print({})"),
         post=gen_post(args),
     )
     exec_code(code, args)
 
 
 def rec_handler(args):
-    if args.csv:
-        args.with_csv = True
-        args.delimiter = ","
-    if args.tsv:
-        args.with_csv = True
-
-    def gen_loop_head():
-        loop_head_codes = ["# LOOP HEAD"]
-        if args.skip_header:
-            loop_head_codes.append("if i == 1: continue")
-        if args.field_type:
-            # ex) if len(rec) > 16 and rec[16]: rec[16] = int(rec[16])
-            for f, t in args.field_type.items():
-                loop_head_codes.append(
-                    "if len(rec) > {0} and rec[{0}]: rec[{0}] = {1}".format(
-                        f - 1, FIELD_TYPE_TMPL[t].format(f"rec[{f-1}]"))
-                )
-        if args.field_length:
-            # ex) f1, f2, f3, f4 = r[:4]
-            loop_head_codes.append("{} = {}".format(
-                ", ".join(f"f{i+1}" for i in range(args.field_length)),
-                f"r[:{args.field_length}]",
-            ))
-        loop_head_codes.extend(extend_codes(args.loop_heads))
-        return "\n".join(indent(c) for c in loop_head_codes)
-
-    def gen_loop_body_rec():
-        loop_body_codes = extend_codes(args.codes, "LOOP BODY")
-        if len(loop_body_codes) == 1:
-            loop_body_codes.append("rec")  # set default code
-        if not args.no_wrapper:
-            if args.counter:
-                loop_body_codes[-1] = r"counter[{}] += 1".format(loop_body_codes[-1])
-            else:
-                loop_body_codes[-1] = "_print({}, delimiter='{}')".format(loop_body_codes[-1], args.delimiter)
-        return "\n".join(indent(c) for c in loop_body_codes)
-
-    def gen_loop_body_csv():
-        loop_body_codes = extend_codes(args.codes, "LOOP BODY")
-        if len(loop_body_codes) == 1:
-            loop_body_codes.append("rec")  # set default code
-        if not args.no_wrapper:
-            if args.counter:
-                loop_body_codes[-1] = r"counter[{}] += 1".format(loop_body_codes[-1])
-            else:
-                loop_body_codes[-1] = "_write({}, writer=writer)".format(loop_body_codes[-1])
-        return "\n".join(indent(c) for c in loop_body_codes)
-
-    def gen_loop_csv():
-        csv_opts = [("delimiter", f"'{args.delimiter}'")]
-        if args.csv_opts:
-            csv_opts.extend(args.csv_opts)
-        reader_opts = ", ".join(f'{k}={v}' for k, v in  csv_opts)
-        writer_opts = ", ".join(f'{k}={v}' for k, v in  csv_opts)
-        return LOOP_REC_CSV.format(
-            writer_opts=writer_opts,
-            reader_opts=reader_opts,
-            loop_head=gen_loop_head(),
-            loop_filter=gen_loop_filter(args),
-            loop_body=gen_loop_body_csv(),
-        )
-
-    def gen_loop_rec():
-        return LOOP_REC.format(
-            delimiter=args.delimiter,
-            loop_head=gen_loop_head(),
-            loop_filter=gen_loop_filter(args),
-            loop_body=gen_loop_body_rec(),
-        )
-
-    if args.with_csv:
-        loop = gen_loop_csv()
+    if args.header:
+        parse_header = r"header = next(sys.stdin).rstrip('\r\n').split('{}')".format(args.delimiter)
     else:
-        loop = gen_loop_rec()
+        parse_header = ""
 
     code = TEMPLATE_REC.format(
         imp=gen_import(args),
+        parse_header=parse_header,
         pre=gen_pre(args),
-        loop=loop,
+        delimiter=args.delimiter,
+        loop_head=gen_loop_head_rec_csv(args),
+        loop_filter=gen_loop_filter(args),
+        loop_body=gen_body(args, "rec", "_print({{}}, delimiter='{}')".format(args.delimiter)),
+        post=gen_post(args),
+    )
+    exec_code(code, args)
+
+
+def csv_handler(args):
+    csv_opts = [("delimiter", f"'{args.delimiter}'")]
+    if args.csv_opts:
+        csv_opts.extend(args.csv_opts)
+    reader_opts = ", ".join(f'{k}={v}' for k, v in  csv_opts)
+    writer_opts = ", ".join(f'{k}={v}' for k, v in  csv_opts)
+    parse_header = "header = next(reader)" if args.header else ""
+
+    code = TEMPLATE_CSV.format(
+        imp=gen_import(args),
+        reader_opts=reader_opts,
+        writer_opts=writer_opts,
+        parse_header=parse_header,
+        pre=gen_pre(args),
+        loop_head=gen_loop_head_rec_csv(args),
+        loop_filter=gen_loop_filter(args),
+        loop_body=gen_body(args, "rec", "_write({}, writer=writer)"),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -392,14 +374,14 @@ def text_handler(args):
 
     def gen_body():
         codes = ["# BODY"]
-        codes.append(r'text = sys.stdin.read().rstrip("\r\n")')
+        codes.append(r'text = sys.stdin.read()')
         if args.json:
             codes.append("dic = json.loads(text)")
             codes.append(f'd = dic  #ABBREV')
         user_codes = extend_codes(args.codes, "CODES")
         if len(user_codes) == 1:
             user_codes.append("text")  # set default code
-        if not args.no_wrapper:
+        if not args.no_wrapping:
             user_codes[-1] = r"_print({})".format(user_codes[-1])
         codes.extend(user_codes)
         return "\n".join(codes)
@@ -421,24 +403,13 @@ def file_handler(args):
             loop_head_codes.append("dic = json.loads(text)")
         return "\n".join(indent(c, 2) for c in loop_head_codes)
 
-    def gen_loop_body():
-        loop_body_codes = extend_codes(args.codes, "LOOP BODY")
-        if len(loop_body_codes) == 1:
-            loop_body_codes.append("text")  # set default code
-        if not args.no_wrapper:
-            if args.counter:
-                loop_body_codes[-1] = r"counter[{}] += 1".format(loop_body_codes[-1])
-            else:
-                loop_body_codes[-1] = r"_print({})".format(loop_body_codes[-1])
-        return "\n".join(indent(c, 2) for c in loop_body_codes)
-
-
     code = TEMPLATE_FILE.format(
         imp=gen_import(args),
         pre=gen_pre(args),
+        mode=args.mode,
         loop_head=gen_loop_head(),
         loop_filter=gen_loop_filter(args, 2),
-        loop_body=gen_loop_body(),
+        loop_body=gen_body(args, "text", r"_print({})", level=2),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -455,7 +426,7 @@ def load_custom_command(name):
     # load custom configuration from the user custom file
     with open(custom_path.expanduser()) as f:
         exec(f.read(), _globals)
-    custom_mode = _globals["custom_mode"]
+    custom_mode = _globals["custom_command"]
     return custom_mode[name]
 
 
@@ -471,25 +442,13 @@ def custom_handler(args):
         loop_head_codes = extend_codes(args.loop_heads, "LOOP HEAD")
         return "\n".join(indent(c, code_indent) for c in loop_head_codes)
 
-    def gen_body(label):
-        loop_body_codes = extend_codes(args.codes, label)
-        if len(loop_body_codes) == 1:
-            loop_body_codes.append(default_code)  # set default code
-        if not args.no_wrapper:
-            if args.counter:
-                loop_body_codes[-1] = r"counter[{}] += 1".format(loop_body_codes[-1])
-            else:
-                loop_body_codes[-1] = wrapper.format(loop_body_codes[-1])
-        return "\n".join(indent(c, code_indent) for c in loop_body_codes)
-
-
     params = {
         "imp": gen_import(args),
         "pre": gen_pre(args),
         "loop_head": gen_loop_head(),
         "loop_filter": gen_loop_filter(args, code_indent),
-        "loop_body": gen_body("LOOP BODY"),
-        "body": gen_body("BODY"),
+        "loop_body": gen_body(args, default_code, wrapper, level=code_indent),
+        "body": gen_body(args, default_code, wrapper, level=code_indent),
         "post": gen_post(args),
     }
     opts = {k: v  for k, v in args.opts}
@@ -546,8 +505,8 @@ if __name__ == "__main__":
         action="store_true",
     )
     common_parser.add_argument(
-        "-n", '--no-wrapper',
-        dest="no_wrapper",
+        "-n", '--no-wrapping',
+        dest="no_wrapping",
         action="store_true"
     )
     common_parser.add_argument(
@@ -584,6 +543,25 @@ if __name__ == "__main__":
         action="append",
     )
 
+    ## REC AND CSV OPTIONS
+    rec_csv_parser = argparse.ArgumentParser(add_help=False)
+    rec_csv_parser.add_argument(
+        '-l', '--field-length',
+        dest="field_length",
+        type=int,
+    )
+    rec_csv_parser.add_argument(
+        '-t', '--field-type',
+        dest="field_type",
+        type=field_type,
+        default={},
+        help="ex) 1:i,3:j,5:b"
+    )
+    rec_csv_parser.add_argument(
+        '-H', '--header',
+        action="store_true",
+    )
+
     # SUB COMMANDS
     subparsers = parser.add_subparsers(
         title="subcommands",
@@ -602,50 +580,42 @@ if __name__ == "__main__":
 
     ## REC
     rec_parser = subparsers.add_parser(
-        "rec", aliases=['r', 'record'], parents=[common_parser, loop_parser])
+        "rec", aliases=['r', 'record'], parents=[common_parser, loop_parser, rec_csv_parser])
     rec_parser.add_argument("codes", nargs='*')
     rec_parser.add_argument(
         '-d', '--delimiter',
         default=r'\t'
     )
     rec_parser.add_argument(
-        '--with-csv',
-        dest="with_csv",
-        action="store_true"
+        '-C', '--csv',
+        action='store_const',
+        dest="delimiter",
+        const=',',
     )
-    rec_parser.add_argument(
+    rec_parser.set_defaults(handler=rec_handler, command="rec")
+
+    ## CSV
+    csv_parser = subparsers.add_parser(
+        "csv", parents=[common_parser, loop_parser, rec_csv_parser])
+    csv_parser.add_argument("codes", nargs='*')
+    csv_parser.add_argument(
+        '-d', '--delimiter',
+        default=','
+    )
+    csv_parser.add_argument(
         '-O', '--csv-opt',
         dest="csv_opts",
         type=key_value,
         default=[],
         action="append",
     )
-    rec_parser.add_argument(
-        '-C', '--csv',
-        action='store_true',
-    )
-    rec_parser.add_argument(
+    csv_parser.add_argument(
         '-T', '--tsv',
-        action='store_true',
+        action='store_const',
+        dest="delimiter",
+        const=r'\t',
     )
-    rec_parser.add_argument(
-        '-l', '--field-length',
-        dest="field_length",
-        type=int,
-    )
-    rec_parser.add_argument(
-        '-t', '--field-type',
-        dest="field_type",
-        type=field_type,
-        default={},
-        help="ex) 1:i,3:j,5:b"
-    )
-    rec_parser.add_argument(
-        '-x', '--skip-header',
-        dest="skip_header",
-        action="store_true",
-    )
-    rec_parser.set_defaults(handler=rec_handler, command="rec")
+    csv_parser.set_defaults(handler=csv_handler, command="csv")
 
     ## TEXT
     text_parser = subparsers.add_parser(
@@ -662,6 +632,10 @@ if __name__ == "__main__":
         "file", aliases=['f'], parents=[common_parser, loop_parser])
     file_parser.add_argument("codes", nargs='*')
     file_parser.add_argument(
+        "-m", "--mode",
+        default='rt',
+    )
+    file_parser.add_argument(
         '-j', '--json',
         action="store_true"
     )
@@ -677,13 +651,17 @@ if __name__ == "__main__":
         default=[],
         type=key_value,
     )
-    custom_parser.add_argument("name")
+    # custom_parser.add_argument("name")
+    custom_parser.add_argument(
+        "-N", "--name",
+        required=True,
+    )
     custom_parser.add_argument("codes", nargs='*')
     custom_parser.set_defaults(handler=custom_handler, command="custom")
 
 
     expected_1st_args = (
-        "line", "l", "rec", "r", "text", "t", "file", "f", "custom", "c",
+        "line", "l", "rec", "r", "csv", "text", "t", "file", "f", "custom", "c",
         "-h", "--help", "-V", "--version"
     )
     if len(sys.argv) == 1 or sys.argv[1] not in expected_1st_args:

@@ -1,0 +1,40 @@
+{
+    "number_of_records": 5,
+    "data": [
+        {
+            "Name": "Simba",
+            "Weight": 250,
+            "Birth": "1994-06-15",
+            "Age": 29,
+            "Species": "Lion"
+        },
+        {
+            "Name": "Dumbo",
+            "Weight": 4000,
+            "Birth": "1941-10-23",
+            "Age": 81,
+            "Species": "Elephant"
+        },
+        {
+            "Name": "George",
+            "Weight": 20,
+            "Birth": "1939-01-01",
+            "Age": 84,
+            "Species": "Monkey"
+        },
+        {
+            "Name": "Pooh",
+            "Weight": 1,
+            "Birth": "1921-08-21",
+            "Age": 102,
+            "Species": "Stuffed bear"
+        },
+        {
+            "Name": "Bob",
+            "Weight": 0,
+            "Birth": "1999-05-01",
+            "Age": 24,
+            "Species": "Sponge"
+        }
+    ]
+}
