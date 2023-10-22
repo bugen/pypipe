@@ -29,8 +29,8 @@ To make it easier to type, it's recommended to create a symbolic link.
 ln -s pypipe.py ppp
 ```
 
-**Note:**
-pypipe requires Python 3.6 or later.
+> **Note**
+> pypipe requires Python 3.6 or later.
 
 ## Basic usage and Examples
 
@@ -39,20 +39,20 @@ pypipe requires Python 3.6 or later.
 Processing line by line. You can get the line string as `line` or `l` and the line number as `i`.
 
 ```sh
-$ cat my_zoo.txt |ppp 'i, line.upper()'
-1       NAME    WEIGHT  BIRTH   AGE     SPECIES
-2       SIMBA   250     1994-06-15      29      LION
-3       DUMBO   4000    1941-10-23      81      ELEPHANT
-4       GEORGE  20      1939-01-01      84      MONKEY
-5       POOH    1       1921-08-21      102     STUFFED BEAR
-6       BOB     0       1999-05-01      24      SPONGE
+$ cat staff.txt |ppp 'i, line.upper()'
+1       NAME    WEIGHT  BIRTH   AGE     SPECIES CLASS
+2       SIMBA   250     1994-06-15      29      LION    MAMMAL
+3       DUMBO   4000    1941-10-23      81      ELEPHANT        MAMMAL
+4       GEORGE  20      1939-01-01      84      MONKEY  MAMMAL
+5       POOH    1       1921-08-21      102     TEDDY BEAR      ARTIFACT
+6       BOB     0       1999-05-01      24      SPONGE  DEMOSPONGE
 ```
 
 ### `| ppp rec`
 
 Split each line by TAB. You can get the list includes splitted strings as `rec` or `r` and the record number as `i`..
 ```sh
-cat my_zoo.txt |ppp rec 'r[:3]'
+cat staff.txt |ppp rec 'r[:3]'
 Name    Weight  Birth
 Simba   250     1994-06-15
 Dumbo   4000    1941-10-23
@@ -63,7 +63,7 @@ Bob     0       1999-05-01
 
 Using the `-l LENGTH, --length LENGTH` option allows you to get the values of each field as `f1, f2, f3, ....`
 ```sh
-$ tail -n +2 my_zoo.txt |ppp rec -l5 'f"{f1} is {f4} years old"'
+$ tail -n +2 staff.txt |ppp rec -l5 'f"{f1} is {f4} years old"'
 Simba is 29 years old
 Dumbo is 81 years old
 George is 84 years old
@@ -73,7 +73,7 @@ Bob is 24 years old
 
 When using the `-H, --header` option, it treats the first line as a header line and skips it. The header values can be obtained from a list named `header`, and you can access the values of each field using the format `dic["FIELD_NAME"]`.
 ```sh
-$ cat my_zoo.txt |ppp rec -H 'rec[0], dic["Birth"]'
+$ cat staff.txt |ppp rec -H 'rec[0], dic["Birth"]'
 Simba   1994-06-15
 Dumbo   1941-10-23
 George  1939-01-01
@@ -83,7 +83,7 @@ Bob     1999-05-01
 
 You can change the delimiter by using the `-d DELIMITER, --delimiter DELIMITER` option.
 ```sh
-$ cat my_zoo.csv |ppp rec -d , -l5  f1
+$ cat staff.csv |ppp rec -d , -l6  f1
 Name
 Simba
 Dumbo
@@ -97,13 +97,13 @@ Bob
 
 You can specify options to pass to csv.reader and csv.writer using the `-O NAME=VALUE, --csv-opt NAME=VALUE` option.
 ```sh
-$ cat my_zoo.csv |ppp csv -O 'quoting=csv.QUOTE_ALL'
-"Name","Weight","Birth","Age","Species"
-"Simba","250","1994-06-15","29","Lion"
-"Dumbo","4000","1941-10-23","81","Elephant"
-"George","20","1939-01-01","84","Monkey"
-"Pooh","1","1921-08-21","102","Stuffed bear"
-"Bob","0","1999-05-01","24","Sponge"
+$ cat staff.csv |ppp csv -O 'quoting=csv.QUOTE_ALL'
+"Name","Weight","Birth","Age","Species","Class"
+"Simba","250","1994-06-15","29","Lion","Mammal"
+"Dumbo","4000","1941-10-23","81","Elephant","Mammal"
+"George","20","1939-01-01","84","Monkey","Mammal"
+"Pooh","1","1921-08-21","102","Teddy bear","Artifact"
+"Bob","0","1999-05-01","24","Sponge","Demosponge"
 ```
 
 
@@ -111,26 +111,28 @@ $ cat my_zoo.csv |ppp csv -O 'quoting=csv.QUOTE_ALL'
 In `ppp text`, the entire standard input is read as a single piece of text. You can access the read text as `text`.
 
 ```sh
-$ cat my_zoo.txt | ppp text 'len(text)'
-185
+$ cat staff.txt | ppp text 'len(text)'
+231
 ```
 
 For example, `ppp text` is particularly useful when working with a indented JSON file. Using the `-j, --json` option allows you to decode the text into JSON. The decoded data can be obtained as a `dic`.
 ```sh
-$ cat my_zoo.json |ppp text -j 'dic["data"][0]'
-{'Name': 'Simba', 'Weight': 250, 'Birth': '1994-06-15', 'Age': 29, 'Species': 'Lion'}
+$ cat staff.json |ppp text -j 'dic["data"][0]'
+{'Name': 'Simba', 'Weight': 250, 'Birth': '1994-06-15', 'Age': 29, 'Species': 'Lion', 'Class': 'Mammal'}
 ```
 
-**Note:** You can also use `-j, --json` option in `line` and `file`.
+> **Note**
+> You can also use `-j, --json` option in `line` and `file`.
 
 ### `| ppp file`
 In `ppp file`, it receives a list of file paths from standard input. It then opens each received file path, reads the contents of the file into `text`, and repeats this process for each received file path in a loop. The received paths can be obtained as `path`.
 
 ```sh
-ls my_zoo.txt my_zoo.csv my_zoo.json |ppp file 'path, len(text)'
-my_zoo.csv      186
-my_zoo.json     887
-my_zoo.txt      186
+$ ls staff.txt staff.csv staff.json staff.xml |ppp file 'path, len(text)'
+staff.csv       231
+staff.json      1046
+staff.txt       231
+staff.xml       1042
 ```
 
 For example, `ppp file` is usuful, especially when processing a large number of JSON files.
@@ -159,7 +161,10 @@ def output(e):
 
 tree = etree.parse(sys.stdin)
 for e in tree.xpath('{path}'):
-{loop_body}
+{loop_head}
+{loop_filter}
+{main}
+
 {post}
 """
 
@@ -182,7 +187,7 @@ def add_or_print(*args):
         else:
             print(args[1])
     else:
-        print(**rec[1:])
+        print(*args[1:])
 
 
 for line in sys.stdin:
@@ -192,7 +197,7 @@ for line in sys.stdin:
         continue
 {loop_head}
 {loop_filter}
-{loop_body}
+{main}
 
 print(s)
 """
@@ -223,7 +228,7 @@ custom_command = {
 You can use them as follows:
 
 ```sh
-$ cat my_zoo.xml |ppp custom -N xpath -O path='./Animal/Age'
+$ cat staff.xml |ppp custom -N xpath -O path='./Animal/Age'
 <Age>29</Age>
 <Age>81</Age>
 <Age>84</Age>
@@ -232,14 +237,14 @@ $ cat my_zoo.xml |ppp custom -N xpath -O path='./Animal/Age'
 ```
 
 ```sh
-$ seq 1000| ppp c -Nsum -f 'rec[0] % 3 == 0'
-166833
+$ seq 10000| ppp c -Nsum -f 'rec[0] % 3 == 0'
+16668333
 ```
 
 ### `-c, --counter`
 Using the `-c, --counter` option allows for easy data aggregation. When you specify the `-c, --counter` option, it creates an instance of collections.Counter, which can be accessed as either `counter` or `c`. The `-c, --counter` option is available for use in all commands.
 
-An example of aggregating data by the 'Gender' and 'Hobbt' fields.
+An example of aggregating data by the 'Gender' and 'Hobby' fields.
 ```sh
 $ cat people.csv |ppp csv -H --counter 'dic["Gender"], dic["Hobby"]'| head -n10
 Female  Cooking 4
@@ -288,7 +293,7 @@ pypipe is a command-line tool for pipeline processing, but it can also be though
 ### Print generated code. `-p, --print`
 To check the generated code, you can use the `-p, --print` option.
 ```sh
-ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "my_zoo"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}", file=sys.stderr)' -p
+ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "staff"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}", file=sys.stderr)' -p
 ```
 The generated code is output as follows.
 ```python
@@ -306,8 +311,8 @@ def _open(path):
         return open(path, 'rb')
 
 # PRE
-_p = partial(print, sep="\t")  #ABBREV
-I, S, B, L, D, SET = 0, "", False, [], {}, set()  #ABBREV
+_p = partial(print, sep="\t")  # ABBREV
+I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV
 
 def _print(*args, delimiter='\t'):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
@@ -325,8 +330,8 @@ for i, line in enumerate(sys.stdin, 1):
         # LOOP HEAD
         size = len(text)
         # LOOP FILTER
-        if not (path.stem == "my_zoo"): continue
-        # BODY
+        if not (path.stem == "staff"): continue
+        # MAIN
         total += size
         _print(path, size, hashlib.md5(text).hexdigest())
 
@@ -336,7 +341,7 @@ print(f"Total size: {total}", file=sys.stderr)
 
 Check that there are no issues with the generated code and execute it.
 ```sh
-$ find . -type f |ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "my_zoo"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}", file=sys.stderr)'
+$ find . -type f |ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "staff"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}", file=sys.stderr)'
 PATH    SIZE    MD5
 my_zoo.csv      186     e091408cc9174f1da86b50ee8e2fba96
 my_zoo.xml      888     9edd78d97e45eccbac2b80747bd9c70b

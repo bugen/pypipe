@@ -5,6 +5,7 @@
         <Birth>1994-06-15</Birth>
         <Age>29</Age>
         <Species>Lion</Species>
+        <Class>Mammal</Class>
     </Animal>
     <Animal>
         <Name>Dumbo</Name>
@@ -12,6 +13,7 @@
         <Birth>1941-10-23</Birth>
         <Age>81</Age>
         <Species>Elephant</Species>
+        <Class>Mammal</Class>
     </Animal>
     <Animal>
         <Name>George</Name>
@@ -19,13 +21,15 @@
         <Birth>1939-01-01</Birth>
         <Age>84</Age>
         <Species>Monkey</Species>
+        <Class>Mammal</Class>
     </Animal>
     <Animal>
         <Name>Pooh</Name>
         <Weight>1</Weight>
         <Birth>1921-08-21</Birth>
         <Age>102</Age>
-        <Species>Stuffed bear</Species>
+        <Species>Teddy bear</Species>
+        <Class>Artifact</Class>
     </Animal>
     <Animal>
         <Name>Bob</Name>
@@ -33,6 +37,7 @@
         <Birth>1999-05-01</Birth>
         <Age>24</Age>
         <Species>Sponge</Species>
+        <Class>Demosponge</Class>
     </Animal>
 </Animals>
 

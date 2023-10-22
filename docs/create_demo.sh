@@ -32,14 +32,15 @@ type() {
 
 main() {
     IFS='%'
-    enter "cat sample.txt"
-    enter "cat sample.txt| ppp 'line.upper()'"
-    enter "cat sample.txt| ppp rec 'r[0]'"
-    enter "cat sample.txt| ppp rec -l 5 'f3, f2, f1'"
-    enter "cat sample.txt| ppp rec -l 5 -f 'f2 != \"Asia\"' line"
-    enter "cat sample.txt| ppp rec -l 5 --counter f2"
+    enter "cat staff.txt"
+    enter "cat staff.txt| ppp 'line.upper()'"
+    enter "cat staff.txt| ppp rec 'r[0]'"
+    enter "cat staff.txt| ppp rec -l 6 f6,f5,f1"
+    enter "cat staff.txt| ppp rec -H -f 'dic[\"Class\"] != \"Mammal\"'"
+    enter "cat staff.txt| ppp rec -H -l6 --counter f6"
     prompt
-    sleep 3
+    sleep 2
+    type " "
     unset IFS
 }
 

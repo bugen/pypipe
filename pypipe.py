@@ -43,7 +43,7 @@ for i, line in enumerate(sys.stdin, 1):
     l = line  # ABBREV
 {loop_head}
 {loop_filter}
-{loop_body}
+{main}
 
 {post}
 """
@@ -60,7 +60,7 @@ for i, line in enumerate(sys.stdin, 1):
     r = rec  # ABBREV
 {loop_head}
 {loop_filter}
-{loop_body}
+{main}
 
 {post}
 """
@@ -86,7 +86,7 @@ for i, rec in enumerate(reader, 1):
     r = rec  # ABBREV
 {loop_head}
 {loop_filter}
-{loop_body}
+{main}
 
 {post}
 """
@@ -96,7 +96,9 @@ TEMPLATE_TEXT = r"""
 
 {pre}
 
-{body}
+text = sys.stdin.read()
+{pre_main}
+{main}
 
 {post}
 """
@@ -118,7 +120,7 @@ for i, line in enumerate(sys.stdin, 1):
         text = file.read()
 {loop_head}
 {loop_filter}
-{loop_body}
+{main}
 
 {post}
 """
@@ -255,16 +257,16 @@ def gen_post(args):
     return "\n".join(codes)
 
 
-def gen_body(args, default_code, wrapper, level=1):
-    loop_body_codes = extend_codes(args.codes, "BODY")
-    if len(loop_body_codes) == 1:
-        loop_body_codes.append(default_code)  # set default code
+def gen_main(args, default_code, wrapper, level=1):
+    codes = extend_codes(args.codes, "MAIN")
+    if len(codes) == 1:
+        codes.append(default_code)  # set default code
     if not args.no_wrapping:
         if args.counter:
-            loop_body_codes[-1] = r"counter[{}] += 1".format(loop_body_codes[-1])
+            codes[-1] = r"counter[{}] += 1".format(codes[-1])
         else:
-            loop_body_codes[-1] = wrapper.format(loop_body_codes[-1])
-    return "\n".join(indent(c, level=level) for c in loop_body_codes)
+            codes[-1] = wrapper.format(codes[-1])
+    return "\n".join(indent(c, level=level) for c in codes)
 
 
 def gen_loop_filter(args, level=1):
@@ -315,7 +317,7 @@ def line_handler(args):
         pre=gen_pre(args),
         loop_head=gen_loop_head(),
         loop_filter=gen_loop_filter(args),
-        loop_body=gen_body(args, "line", r"_print({})"),
+        main=gen_main(args, "line", r"_print({})"),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -334,7 +336,7 @@ def rec_handler(args):
         delimiter=args.delimiter,
         loop_head=gen_loop_head_rec_csv(args),
         loop_filter=gen_loop_filter(args),
-        loop_body=gen_body(args, "rec", "_print({{}}, delimiter='{}')".format(args.delimiter)),
+        main=gen_main(args, "rec", "_print({{}}, delimiter='{}')".format(args.delimiter)),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -356,7 +358,7 @@ def csv_handler(args):
         pre=gen_pre(args),
         loop_head=gen_loop_head_rec_csv(args),
         loop_filter=gen_loop_filter(args),
-        loop_body=gen_body(args, "rec", "_write({}, writer=writer)"),
+        main=gen_main(args, "rec", "_write({}, writer=writer)"),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -364,24 +366,18 @@ def csv_handler(args):
 
 def text_handler(args):
 
-    def gen_body():
-        codes = ["# BODY"]
-        codes.append(r'text = sys.stdin.read()')
+    def gen_pre_main():
+        codes = []
         if args.json:
             codes.append("dic = json.loads(text)")
             codes.append(f'd = dic  #ABBREV')
-        user_codes = extend_codes(args.codes, "CODES")
-        if len(user_codes) == 1:
-            user_codes.append("text")  # set default code
-        if not args.no_wrapping:
-            user_codes[-1] = r"_print({})".format(user_codes[-1])
-        codes.extend(user_codes)
         return "\n".join(codes)
 
     code = TEMPLATE_TEXT.format(
         imp=gen_import(args),
         pre=gen_pre(args),
-        body=gen_body(),
+        pre_main=gen_pre_main(),
+        main=gen_main(args, "text", "_print({})", level=0),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -401,7 +397,7 @@ def file_handler(args):
         mode=args.mode,
         loop_head=gen_loop_head(),
         loop_filter=gen_loop_filter(args, 2),
-        loop_body=gen_body(args, "text", r"_print({})", level=2),
+        main=gen_main(args, "text", r"_print({})", level=2),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -439,8 +435,7 @@ def custom_handler(args):
         "pre": gen_pre(args),
         "loop_head": gen_loop_head(),
         "loop_filter": gen_loop_filter(args, code_indent),
-        "loop_body": gen_body(args, default_code, wrapper, level=code_indent),
-        "body": gen_body(args, default_code, wrapper, level=code_indent),
+        "main": gen_main(args, default_code, wrapper, level=code_indent),
         "post": gen_post(args),
     }
     opts = {k: v  for k, v in args.opts}

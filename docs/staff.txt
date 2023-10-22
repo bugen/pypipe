@@ -1,0 +1,6 @@
+Name	Weight	Birth	Age	Species	Class
+Simba	250	1994-06-15	29	Lion	Mammal
+Dumbo	4000	1941-10-23	81	Elephant	Mammal
+George	20	1939-01-01	84	Monkey	Mammal
+Pooh	1	1921-08-21	102	Teddy bear	Artifact
+Bob	0	1999-05-01	24	Sponge	Demosponge
