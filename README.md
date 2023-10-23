@@ -91,6 +91,18 @@ Pooh
 Bob
 ```
 
+You can use a regex to split by using the `-R REGEX_SPLITTER, --regex_splitter REGEX_SPLITTER` option.
+This is useful when you have columns delimited by an indeterminate amount of spaces such as in the file marks.txt
+Note this is only used to split input and the -d delimiter (defaults to tab) is still used to separate columns for the output.
+```sh
+$ cat marks.txt |ppp rec -R '\s+' 'r[1:3]'
+Amit	Physics
+Rahul	Maths
+Shyam	Biology
+Kedar	English
+Hari	History
+```
+
 ### `| ppp csv`
 `csv` is similar to `rec`, but the difference is that while `rec` simply splits the line using the specified DELIMITER like this, `'line.split(DELIMITER))'`, `csv` uses the [csv](https://docs.python.org/3/library/csv.html) library for parsing. Furthermore, `rec` is tab-separated by default, whereas `csv` is comma-separated.
 
