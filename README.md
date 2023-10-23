@@ -15,7 +15,6 @@ ppp
 - [Installation](#installation)
 - [Basic usage and Examples](#basic-usage-and-examples)
 - [pypipe is a code generator.](#pypipe-is-a-code-generator)
-- [Misc](#misc)
 
 
 
@@ -529,7 +528,7 @@ $ seq 5 |ppp -i math 'line, math.sqrt(int(line))'
 4       2.0
 5       2.23606797749979
 ```
-## Misc
+<!-- ## Misc
 
 ### pypipe only supports standard input.
 pypipe only supports standard input. You cannot specify input files as arguments, and there are no plans to implement this option. pypipe follows a policy of keeping the implementation as simple as possible and avoiding dependencies on libraries outside the standard library. Supporting input files would make the implementation more complex and increase the code size, which goes against this policy. For most use cases, input from standard input should be sufficient. If you need functionalities like rewind or seek, it's better to write plain Python code without using pypipe. If you strongly prefer not to connect through pipes, you can kind of get the feel of specifying an input file using redirection like this (+_+)!:
@@ -538,4 +537,4 @@ ppp line ... <input.txt
 ```
 
 ### Performance
-pypipe prioritizes ease of use and doesn't focus on high performance (as Python itself is not particularly fast). If you require high performance, it's advisable to use other excellent commands like [awk](https://www.gnu.org/software/gawk/manual/gawk.html).
+pypipe prioritizes ease of use and doesn't focus on high performance (as Python itself is not particularly fast). If you require high performance, it's advisable to use other excellent commands like [awk](https://www.gnu.org/software/gawk/manual/gawk.html). -->
