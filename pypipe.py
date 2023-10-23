@@ -18,6 +18,7 @@ limitations under the License.
 """
 import sys
 import argparse
+import re
 from os import chmod
 
 
@@ -56,7 +57,10 @@ TEMPLATE_REC = r"""
 
 for i, line in enumerate(sys.stdin, 1):
     line = line.rstrip("\r\n")
-    rec = line.split('{delimiter}')
+    if '{regex_splitter}' == "\n":
+        rec = line.split('{delimiter}')
+    else:
+        rec = re.split('{regex_splitter}', line) 
     r = rec  # ABBREV
 {loop_head}
 {loop_filter}
@@ -202,6 +206,7 @@ def gen_import(args):
     codes = ["# IMPORT"]
     codes.append("import sys")
     codes.append("from functools import partial")
+    codes.append("import re")
 
     if "json" in args and args.json:
         codes.append("import json")
@@ -334,9 +339,10 @@ def rec_handler(args):
         parse_header=parse_header,
         pre=gen_pre(args),
         delimiter=args.delimiter,
+        regex_splitter=args.regex_splitter,
         loop_head=gen_loop_head_rec_csv(args),
         loop_filter=gen_loop_filter(args),
-        main=gen_main(args, "rec", "_print({{}}, delimiter='{}')".format(args.delimiter)),
+        main=gen_main(args, "rec", "_print({{}}, delimiter='{}')".format(args.delimiter, args.regex_splitter)),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -569,6 +575,10 @@ if __name__ == "__main__":
     rec_parser = subparsers.add_parser(
         "rec", aliases=['r', 'record'], parents=[common_parser, loop_parser, rec_csv_parser])
     rec_parser.add_argument("codes", nargs='*')
+    rec_parser.add_argument(
+        '-R', '--regex_splitter',
+        default=r'\n',
+    )
     rec_parser.add_argument(
         '-d', '--delimiter',
         default=r'\t'
