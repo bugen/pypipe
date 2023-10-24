@@ -19,6 +19,14 @@ ppp
 
 
 ## Installation
+
+1. ### install via script
+```shell
+sudo ./install_script.sh
+Installation complete. You can now run 'ppp' from the command line.
+```
+
+2. ### install manually
 pypipe is a single Python file and uses only the standard library. You can use it by placing pypipe.py in a directory included in your PATH (e.g., ~/.local/bin). If execute permission is not already present, please add it.
 ```sh
 chmod +x pypipe.py
