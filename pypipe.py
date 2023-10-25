@@ -51,12 +51,13 @@ for i, line in enumerate(sys.stdin, 1):
 TEMPLATE_REC = r"""
 {imp}
 
+{re_compile}
 {parse_header}
 {pre}
 
 for i, line in enumerate(sys.stdin, 1):
     line = line.rstrip("\r\n")
-    rec = line.split('{delimiter}')
+    {parse_line}
     r = rec  # ABBREV
 {loop_head}
 {loop_filter}
@@ -206,11 +207,16 @@ def gen_import(args):
     if "json" in args and args.json:
         codes.append("import json")
 
-    if "field_type" in args and "j" in [args.field_type.values()]:
+    if "field_type" in args and "j" in list(args.field_type.values()):
         codes.append("import json")
 
     if args.counter:
         codes.append("from collections import Counter")
+
+    # REC
+    if args.command == "rec":
+        if args.regex or (args.delimiter != r'\t' and len(args.delimiter) > 1):
+            codes.append("import re")
 
     # CSV
     if args.command == "csv":
@@ -324,30 +330,46 @@ def line_handler(args):
 
 
 def rec_handler(args):
-    if args.header:
-        parse_header = r"header = next(sys.stdin).rstrip('\r\n').split('{}')".format(args.delimiter)
+    is_regex_delimiter = args.delimiter != r'\t' and len(args.delimiter) > 1
+    if args.regex is not None:
+        output_delimiter = args.output_delimiter or r'\t'
+        re_compile = rf"pattern = re.compile(r'{args.regex}')"
+        parse_header = r"header = pattern.findall(next(sys.stdin).rstrip('\r\n'))" if args.header else ""
+        parse_line = r"rec = pattern.findall(line)"
+    elif is_regex_delimiter:
+        output_delimiter = args.output_delimiter or r'\t'
+        re_compile = rf"pattern = re.compile(r'{args.delimiter}')"
+        parse_header = r"header = pattern.split(next(sys.stdin).rstrip('\r\n'))" if args.header else ""
+        parse_line = r"rec = pattern.split(line)"
     else:
-        parse_header = ""
+        output_delimiter = args.output_delimiter or args.delimiter
+        re_compile = ""
+        parse_header = rf"header = next(sys.stdin).rstrip('\r\n').split('{args.delimiter}')" if args.header else ""
+        parse_line = rf"rec = line.split('{args.delimiter}')"
 
     code = TEMPLATE_REC.format(
         imp=gen_import(args),
+        re_compile=re_compile,
         parse_header=parse_header,
         pre=gen_pre(args),
-        delimiter=args.delimiter,
+        parse_line=parse_line,
         loop_head=gen_loop_head_rec_csv(args),
         loop_filter=gen_loop_filter(args),
-        main=gen_main(args, "rec", "_print({{}}, delimiter='{}')".format(args.delimiter)),
+        main=gen_main(args, "rec", "_print({{}}, delimiter='{}')".format(output_delimiter)),
         post=gen_post(args),
     )
     exec_code(code, args)
 
 
 def csv_handler(args):
-    csv_opts = [("delimiter", f"'{args.delimiter}'")]
+    output_delimiter = args.output_delimiter or args.delimiter
+    csv_reader_opts = [("delimiter", f"'{args.delimiter}'")]
+    csv_writer_opts = [("delimiter", f"'{output_delimiter}'")]
     if args.csv_opts:
-        csv_opts.extend(args.csv_opts)
-    reader_opts = ", ".join(f'{k}={v}' for k, v in  csv_opts)
-    writer_opts = ", ".join(f'{k}={v}' for k, v in  csv_opts)
+        csv_reader_opts.extend(args.csv_opts)
+        csv_writer_opts.extend(args.csv_opts)
+    reader_opts = ", ".join(f'{k}={v}' for k, v in csv_reader_opts)
+    writer_opts = ", ".join(f'{k}={v}' for k, v in csv_writer_opts)
     parse_header = "header = next(reader)" if args.header else ""
 
     code = TEMPLATE_CSV.format(
@@ -533,6 +555,10 @@ if __name__ == "__main__":
     ## REC AND CSV OPTIONS
     rec_csv_parser = argparse.ArgumentParser(add_help=False)
     rec_csv_parser.add_argument(
+        '-D', '--output-delimiter',
+        dest="output_delimiter",
+    )
+    rec_csv_parser.add_argument(
         '-l', '--field-length',
         dest="field_length",
         type=int,
@@ -574,10 +600,20 @@ if __name__ == "__main__":
         default=r'\t'
     )
     rec_parser.add_argument(
+        '-m', '--regex-match',
+        dest="regex",
+    )
+    rec_parser.add_argument(
         '-C', '--csv',
         action='store_const',
         dest="delimiter",
         const=',',
+    )
+    rec_parser.add_argument(
+        '-S', '--spaces',
+        action='store_const',
+        dest="delimiter",
+        const=r'\s+',
     )
     rec_parser.set_defaults(handler=rec_handler, command="rec")
 
