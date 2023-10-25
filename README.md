@@ -47,6 +47,16 @@ $ cat staff.txt |ppp 'i, line.upper()'
 6       BOB     0       1999-05-01      24      SPONGE  DEMOSPONGE
 ```
 
+Using the `-j, --json` option allows you to decode each line as JSON. The decoded result can be obtained as a dictionary `dic`.
+```sh
+$ cat staff.jsonlines.txt |ppp -j 'dic["Name"]'
+Simba
+Dumbo
+George
+Pooh
+Bob
+```
+
 ### `| ppp rec`
 
 Split each line by TAB. You can get the list includes splitted strings as `rec` or `r` and the record number as `i`..
@@ -80,6 +90,14 @@ Pooh    1921-08-21
 Bob     1999-05-01
 ```
 
+By using the `-t FIELD_TYPES, --field-type FIELD_TYPES`, you can specify the type of each field, allowing you to convert values from 'str' to the specified type.
+```sh
+$ echo 'Hello	100	10.2	True	{"id":100,"title":"sample"}'|ppp rec -l5 -t 2:i,3:f,4:b,5:j "type(f1),type(f2),type(f3),type(f4),type(f5)"
+<class 'str'>   <class 'int'>   <class 'float'> <class 'bool'>  <class 'dict'>
+```
+> **Note**
+> When there is a header row in the data, using `-t` often results in errors when attempting to convert the header row's item names to the specified types. In such cases, you can avoid errors by using the `-H, --header` option to skip the header row.
+
 You can change the delimiter by using the `-d DELIMITER, --delimiter DELIMITER` option.
 ```sh
 $ cat staff.csv |ppp rec -d , -l6  f1
@@ -89,6 +107,33 @@ Dumbo
 George
 Pooh
 Bob
+```
+
+Also supports regular expression delimiters.
+
+```sh
+$ echo 'AAA      BBB CCC    DDD' | ppp rec -d '\s+' rec[2]
+CCC
+```
+
+> **Note**
+> `-S, --spaces` option has the same meaning as `-d '\s+'`.
+
+You can change the output delimiter by using the `-D DELIMITER, --output-delimiter DELIMITER` option.
+```sh
+$ cat staff.txt |ppp rec -D ,
+Name,Weight,Birth,Age,Species,Class
+Simba,250,1994-06-15,29,Lion,Mammal
+Dumbo,4000,1941-10-23,81,Elephant,Mammal
+George,20,1939-01-01,84,Monkey,Mammal
+Pooh,1,1921-08-21,102,Teddy bear,Artifact
+Bob,0,1999-05-01,24,Sponge,Demosponge
+```
+
+When using the `-m, --regex-match` option, `rec` is generated through regular expression matching instead of delimiter-based splitting.
+```sh
+$ echo 'Height: 200px, Width: 1000px' | ppp rec -m '\d+' r[1]
+1000
 ```
 
 ### `| ppp csv`
@@ -436,18 +481,21 @@ for i, line in enumerate(sys.stdin, 1):
 #### Disable code wrappping. `-n, --no-wrapping`
 If you want to disable the wrapping of the last code specified in the arguments by a predefined wrapper, you can use the `-n, --no-wrapping` option.
 ```sh
-ppp line -n 'n = max(len(line), n)' -a 'print(n)' -pqr
+$ ppp line -n 'I = max(len(line), I)' -a 'print(I)' -pq
 ```
 ```python
 import sys
 from functools import partial
 
+_p = partial(print, sep="\t")  # ABBREV
+I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV
 
 for i, line in enumerate(sys.stdin, 1):
     line = line.rstrip("\r\n")
-    n = max(len(line), n)  # No wrapping
+    l = line  # ABBREV
+    I = max(len(line), I)
 
-print(n)
+print(I)
 ```
 
 ### Pre and Post codes. `-b CODE, --pre CODE`,  `-a CODE, --post CODE`

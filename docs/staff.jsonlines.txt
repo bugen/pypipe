@@ -1,0 +1,5 @@
+{"Name": "Simba", "Weight": 250, "Birth": "1994-06-15", "Age": 29, "Species": "Lion", "Class": "Mammal"}
+{"Name": "Dumbo", "Weight": 4000, "Birth": "1941-10-23", "Age": 81, "Species": "Elephant", "Class": "Mammal"}
+{"Name": "George", "Weight": 20, "Birth": "1939-01-01", "Age": 84, "Species": "Monkey", "Class": "Mammal"}
+{"Name": "Pooh", "Weight": 1, "Birth": "1921-08-21", "Age": 102, "Species": "Teddy bear", "Class": "Artifact"}
+{"Name": "Bob", "Weight": 0, "Birth": "1999-05-01", "Age": 24, "Species": "Sponge", "Class": "Demosponge"}
