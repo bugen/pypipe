@@ -1,5 +1,5 @@
 [package]
-name = "syrusakbary/pypipe" # Change it to "bugen/pypipe" once merged
+name = "bugen/pypipe"
 version = "0.1.0"
 description = "pypipe in Wasmer"
 repository = "https://github.com/bugen/pypipe"

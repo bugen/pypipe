@@ -30,9 +30,8 @@ ln -s pypipe.py ppp
 
 You can also use it with Wasmer:
 
-<!--  # Change it to wasmer run bugen/pypipe once merged -->
 ```sh
-alias ppp="wasmer run syrusakbary/pypipe -- "
+alias ppp="wasmer run bugen/pypipe -- "
 ```
 
 > **Note**
