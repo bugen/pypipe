@@ -59,7 +59,7 @@ Bob
 
 ### `| ppp rec`
 
-Split each line by TAB. You can get the list includes splitted strings as `rec` or `r` and the record number as `i`..
+Split each line by TAB. You can get the list including splitted strings as `rec` or `r` and the record number as `i`..
 ```sh
 cat staff.txt |ppp rec 'r[:3]'
 Name    Weight  Birth
@@ -159,7 +159,7 @@ $ cat staff.txt | ppp text 'len(text)'
 231
 ```
 
-For example, `ppp text` is particularly useful when working with a indented JSON file. Using the `-j, --json` option allows you to decode the text into JSON. The decoded data can be obtained as a `dic`.
+For example, `ppp text` is particularly useful when working with an indented JSON file. Using the `-j, --json` option allows you to decode the text into JSON. The decoded data can be obtained as a `dic`.
 ```sh
 $ cat staff.json |ppp text -j 'dic["data"][0]'
 {'Name': 'Simba', 'Weight': 250, 'Birth': '1994-06-15', 'Age': 29, 'Species': 'Lion', 'Class': 'Mammal'}
@@ -179,7 +179,7 @@ staff.txt       231
 staff.xml       1042
 ```
 
-For example, `ppp file` is usuful, especially when processing a large number of JSON files.
+For example, `ppp file` is useful, especially when processing a large number of JSON files.
 ```sh
 find . -name '*.json'| ppp file --json ...
 ```
@@ -456,7 +456,7 @@ for i, line in enumerate(sys.stdin, 1):
 ```
 
 
-### Code wrappping
+### Code wrapping
 By default, pypipe wraps the last code specified in the arguments with a predefined wrapper. For example, in `ppp line`, it uses `'_print({})'` as the wrapper. However, if the `-c, --counter` option is specified, it uses `'counter[{}] += 1'` as the wrapper instead.
 ```sh
 $ ppp line 'year = int(line)' year -pqr
@@ -478,7 +478,7 @@ for i, line in enumerate(sys.stdin, 1):
     year = int(line)
     _print(year)  # Wrapping
 ```
-#### Disable code wrappping. `-n, --no-wrapping`
+#### Disable code wrapping. `-n, --no-wrapping`
 If you want to disable the wrapping of the last code specified in the arguments by a predefined wrapper, you can use the `-n, --no-wrapping` option.
 ```sh
 $ ppp line -n 'I = max(len(line), I)' -a 'print(I)' -pq
