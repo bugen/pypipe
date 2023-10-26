@@ -28,6 +28,13 @@ To make it easier to type, it's recommended to create a symbolic link.
 ln -s pypipe.py ppp
 ```
 
+You can also use it with Wasmer:
+
+<!--  # Change it to wasmer run bugen/pypipe once merged -->
+```sh
+alias ppp="wasmer run syrusakbary/pypipe -- "
+```
+
 > **Note**
 > pypipe requires Python 3.6 or later.
 

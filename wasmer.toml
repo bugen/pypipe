@@ -1,0 +1,23 @@
+[package]
+name = "syrusakbary/pypipe" # Change it to "bugen/pypipe" once merged
+version = "0.1.0"
+description = "pypipe in Wasmer"
+repository = "https://github.com/bugen/pypipe"
+readme = "README.md"
+
+[dependencies]
+"python/python" = "^0.2.0"
+
+[fs]
+"/src" = "./"
+
+[[command]]
+name = "ppp"
+module = "python/python:python"
+runner = "wasi"
+
+[command.annotations.wasi]
+main-args = [
+    "/src/pypipe.py",
+]
+env = ["PYTHONEXECUTABLE: /bin/python"]
