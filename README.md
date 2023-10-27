@@ -28,7 +28,7 @@ To make it easier to type, it's recommended to create a symbolic link.
 ln -s pypipe.py ppp
 ```
 
-You can also use it with Wasmer:
+You can also use it with [Wasmer](https://wasmer.io/):
 
 ```sh
 alias ppp="wasmer run bugen/pypipe -- "
