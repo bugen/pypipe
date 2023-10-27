@@ -19,7 +19,7 @@ ppp
 
 
 ## Installation
-pypipe is a single Python file and uses only the standard library. You can use it by placing pypipe.py in a directory included in your PATH (e.g., ~/.local/bin). If execute permission is not already present, please add it.
+pypipe is a single Python file and uses only the standard library. You can use it by placing `pypipe.py` in a directory included in your PATH (e.g., ~/.local/bin). If execute permission is not already present, please add it.
 ```sh
 chmod +x pypipe.py
 ```
@@ -28,14 +28,13 @@ To make it easier to type, it's recommended to create a symbolic link.
 ln -s pypipe.py ppp
 ```
 
-You can also use it with [Wasmer](https://wasmer.io/):
+> **Note**
+> pypipe requires Python 3.6 or later.
 
+You can also use it with [Wasmer](https://wasmer.io/):
 ```sh
 alias ppp="wasmer run bugen/pypipe -- "
 ```
-
-> **Note**
-> pypipe requires Python 3.6 or later.
 
 ## Basic usage and Examples
 
