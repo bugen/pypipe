@@ -470,8 +470,7 @@ def custom_handler(args):
     exec_code(code, args)
 
 
-if __name__ == "__main__":
-
+def main(argv=None):
     def key_value(s):
         kv = s.split("=", 1)
         return kv[0], kv[1]
@@ -682,13 +681,16 @@ if __name__ == "__main__":
     custom_parser.add_argument("codes", nargs='*')
     custom_parser.set_defaults(handler=custom_handler, command="custom")
 
-
     expected_1st_args = (
         "line", "l", "rec", "r", "csv", "text", "t", "file", "f", "custom", "c",
         "-h", "--help", "-V", "--version"
     )
-    if len(sys.argv) == 1 or sys.argv[1] not in expected_1st_args:
-        sys.argv.insert(1, "line")
+    if len(argv) == 0 or argv[0] not in expected_1st_args:
+        argv.insert(0, "line")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     args.handler(args)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
