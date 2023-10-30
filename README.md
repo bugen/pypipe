@@ -390,13 +390,13 @@ print(f"Total size: {total}", file=sys.stderr)
 
 Check that there are no issues with the generated code and execute it.
 ```sh
-$ find . -type f |ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "staff"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}", file=sys.stderr)'
+$ find docs -type f |ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "staff"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}", file=sys.stderr)'
 PATH    SIZE    MD5
-my_zoo.csv      186     e091408cc9174f1da86b50ee8e2fba96
-my_zoo.xml      888     9edd78d97e45eccbac2b80747bd9c70b
-my_zoo.json     887     7f15b3b8a23b91b60184113a38fa3e19
-my_zoo.txt      186     4581c312d81815c3662f785ba9e7bd50
-Total size: 2147
+docs/staff.json 1046    3f81986424eea2648bcabec324f8e959
+docs/staff.txt  231     a0757fb3838ed1235b21f96e1953445c
+docs/staff.xml  1042    7d36d493c1dd7594db3426f242b667f6
+docs/staff.csv  231     6cba6414c49b8762d6a49e2d9a62e563
+Total size: 2550
 ```
 
 
