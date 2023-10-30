@@ -1,0 +1,1 @@
+Height: 200px, Width: 1000px
