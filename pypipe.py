@@ -268,10 +268,14 @@ def gen_main(args, default_code, wrapper, level=1):
     if len(codes) == 1:
         codes.append(default_code)  # set default code
     if not args.no_wrapping:
+        spaces = ""
+        for c in codes[-1]:
+            if c != " ": break
+            spaces += c
         if args.counter:
-            codes[-1] = r"counter[{}] += 1".format(codes[-1])
+            codes[-1] = spaces + r"counter[{}] += 1".format(codes[-1].lstrip())
         else:
-            codes[-1] = wrapper.format(codes[-1])
+            codes[-1] = spaces + wrapper.format(codes[-1].lstrip())
     return "\n".join(indent(c, level=level) for c in codes)
 
 
