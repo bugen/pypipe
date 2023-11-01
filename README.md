@@ -333,7 +333,7 @@ Washington      753675
 Michigan        673104
 ```
 
-Information about [Code wrapping](#code-wrappping).
+Information about [Code wrapping](#code-wrapping).
 
 
 ## pypipe is a code generator.
