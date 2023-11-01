@@ -1,0 +1,6 @@
+Name is Age years old
+Simba is 29 years old
+Dumbo is 81 years old
+George is 84 years old
+Pooh is 102 years old
+Bob is 24 years old
