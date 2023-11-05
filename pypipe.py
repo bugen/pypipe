@@ -125,13 +125,35 @@ for i, line in enumerate(sys.stdin, 1):
 {post}
 """
 
-PRINT_FUNC = r"""
-def _print(*args, delimiter='\t'):
-    if len(args) == 1 and isinstance(args[0], (list, tuple)):
-        print(*args[0], sep=delimiter)
-    else:
-        print(*args, sep=delimiter)
+JSON_FUNC = r"""
+def _json(v):
+    if isinstance(v, (dict, list, tuple)):
+        v = json.dumps(v)
+    elif not isinstance(v, str):
+        v = str(v)
+    return v
 """
+
+PRINT_FUNC = r"""
+def _print(*args, sep='{sep}'):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        print(sep.join(str(v) for v in args[0]))
+    else:
+        print(sep.join(str(v) for v in args))
+"""
+
+PRINT_FUNC_JSON = r"""
+def _print(*args, sep='{sep}'):
+    print(sep.join(_json(v) for v in args))
+"""
+
+PRINT_FUNC_NATIVE = r"_print = partial(print, sep='{sep}')"
+
+FORMAT_PRINT_FUNC = {
+    "default": PRINT_FUNC, "d": PRINT_FUNC,
+    "json": PRINT_FUNC_JSON, "j": PRINT_FUNC_JSON,
+    "native": PRINT_FUNC_NATIVE, "n": PRINT_FUNC_NATIVE,
+}
 
 COUNTER_POST = r"""
 for v, c in counter.most_common():
@@ -198,34 +220,31 @@ def extend_codes(codes, comment=None):
     return not_empty_codes
 
 
+def is_json_needed(args):
+    return ("json" in args and args.json or
+            args.output_format in ("json", "j") or
+            "field_type" in args and "j" in list(args.field_type.values()))
+
+
 def gen_import(args):
     codes = ["# IMPORT"]
     codes.append("import sys")
     codes.append("from functools import partial")
-
-    if "json" in args and args.json:
+    if is_json_needed(args):
         codes.append("import json")
-
-    if "field_type" in args and "j" in list(args.field_type.values()):
-        codes.append("import json")
-
     if args.counter:
         codes.append("from collections import Counter")
-
     # REC
     if args.command == "rec":
         if args.regex or (args.delimiter != r'\t' and len(args.delimiter) > 1):
             codes.append("import re")
-
     # CSV
     if args.command == "csv":
         codes.append("import csv")
-
     # FILE
     if args.command == "file":
         codes.append("import gzip")
         codes.append("from pathlib import Path")
-
     if args.import_codes:
         for i in args.import_codes:
             if i.startswith('import ') or i.startswith('from '):
@@ -239,14 +258,12 @@ def gen_pre(args):
     codes = ["# PRE"]
     codes.append(r'_p = partial(print, sep="\t")  # ABBREV')
     codes.append(r'I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV')
-
-    if not args.no_wrapping:
-        codes.append(PRINT_FUNC)
-
+    if is_json_needed(args):
+        codes.append(JSON_FUNC)
+    codes.append(FORMAT_PRINT_FUNC[args.output_format].format(sep=args.output_delimiter))
     if args.counter:
         codes.append(r"counter = Counter()")
         codes.append(rf"c = counter  #ABBREV")
-
     if args.pre_codes:
         codes.extend(extend_codes(args.pre_codes))
     return "\n".join(codes)
@@ -255,7 +272,6 @@ def gen_pre(args):
 def gen_post(args):
     if args.post_codes:
         return "\n".join(extend_codes(args.post_codes, "POST"))
-
     codes = ["# POST"]
     if args.counter:
         codes.append(COUNTER_POST)
@@ -335,17 +351,14 @@ def line_handler(args):
 def rec_handler(args):
     is_regex_delimiter = args.delimiter != r'\t' and len(args.delimiter) > 1
     if args.regex is not None:
-        output_delimiter = args.output_delimiter or r'\t'
         re_compile = rf"pattern = re.compile(r'{args.regex}')"
         parse_header = r"header = pattern.findall(next(sys.stdin).rstrip('\r\n'))" if args.header else ""
         parse_line = r"rec = pattern.findall(line)"
     elif is_regex_delimiter:
-        output_delimiter = args.output_delimiter or r'\t'
         re_compile = rf"pattern = re.compile(r'{args.delimiter}')"
         parse_header = r"header = pattern.split(next(sys.stdin).rstrip('\r\n'))" if args.header else ""
         parse_line = r"rec = pattern.split(line)"
     else:
-        output_delimiter = args.output_delimiter or args.delimiter
         re_compile = ""
         parse_header = rf"header = next(sys.stdin).rstrip('\r\n').split('{args.delimiter}')" if args.header else ""
         parse_line = rf"rec = line.split('{args.delimiter}')"
@@ -358,7 +371,7 @@ def rec_handler(args):
         parse_line=parse_line,
         loop_head=gen_loop_head_rec_csv(args),
         loop_filter=gen_loop_filter(args),
-        main=gen_main(args, "rec", "_print({{}}, delimiter='{}')".format(output_delimiter)),
+        main=gen_main(args, "rec", r"_print({})"),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -539,6 +552,22 @@ def main(argv=None):
         '-c', '--counter',
         action="store_true"
     )
+    common_parser.add_argument(
+        '-D', '--output-delimiter',
+        dest="output_delimiter",
+    )
+    common_parser.add_argument(
+        '-L', '--linebreak',
+        action='store_const',
+        const=r'\n',
+        dest="output_delimiter",
+    )
+    common_parser.add_argument(
+        '-F', '--output-format',
+        choices=FORMAT_PRINT_FUNC.keys(),
+        default='default',
+        dest="output_format",
+    )
 
     ## LOOP OPTIONS
     loop_parser = argparse.ArgumentParser(add_help=False)
@@ -556,10 +585,6 @@ def main(argv=None):
 
     ## REC AND CSV OPTIONS
     rec_csv_parser = argparse.ArgumentParser(add_help=False)
-    rec_csv_parser.add_argument(
-        '-D', '--output-delimiter',
-        dest="output_delimiter",
-    )
     rec_csv_parser.add_argument(
         '-l', '--field-length',
         dest="field_length",
@@ -692,6 +717,13 @@ def main(argv=None):
         argv.insert(0, "line")
 
     args = parser.parse_args(argv)
+
+    if args.output_delimiter is None:
+        if 'delimiter' in args and args.delimiter and len(args.delimiter) == 1:
+            args.output_delimiter = args.delimiter
+        else:
+            args.output_delimiter = r'\t'
+
     args.handler(args)
 
 
