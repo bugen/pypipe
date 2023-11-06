@@ -8,13 +8,17 @@ ppp
 **pypipe** is a Python command-line tool for pipeline processing.
 
 ## Demo <!-- omit from toc -->
-![Alt text](docs/demo.svg)
+![Demo](docs/demo.svg)
 
 
 ## Quick links <!-- omit from toc -->
 - [Installation](#installation)
 - [Basic usage and Examples](#basic-usage-and-examples)
+- [View mode `-v, --view`](#view-mode--v---view)
+- [Output formatting](#output-formatting)
+- [Counter `-c, --counter`](#counter--c---counter)
 - [pypipe is a code generator.](#pypipe-is-a-code-generator)
+- [Pager](#pager)
 
 
 
@@ -290,7 +294,188 @@ $ seq 10000| ppp c -Nsum -f 'rec[0] % 3 == 0'
 16668333
 ```
 
-### `-c, --counter`
+## View mode `-v, --view`
+When using the `-v, --view` option, the output is pretty printed with colored formatting. Data formats with many items such as CSV, TSV, JSON, and others can be hard to read in their raw format, making the View mode particularly useful when inspecting such data. In View mode, `dict`, `list` and `tuple` are formatted using the standard library's `pprint`.
+
+![Alt text](docs/view_sample1.png)
+
+When you use both the `-v, --view` option and the `-H, --header` option together, it displays the values along with the field names.
+
+![Alt text](docs/view_sample2.png)
+
+In View mode, `dict`, `list` and `tuple` are formatted using the standard library's `pprint`.
+
+![Alt text](docs/view_sample3.png)
+
+
+### `-k COLOR_MODE, --color COLOR_MODE`
+In View mode, pypipe automatically determines whether to apply colorization. By default, when outputting to a terminal, the output will be in color. However, if you redirect the output to a file or pipe it to another command, it will not be in color. You can change this behavior using the `-k COLOR_MODE, --color COLOR_MODE` options:
+
+- Using `-k auto` or `--color auto` lets the tool automatically decide whether to apply colorization.
+- Using `-k always` or `--color always` forces colorization at all times.
+- Using `-k never` or `--color never` disables colorization.
+
+## Output formatting
+In pypipe, you have the flexibility to write code to output results in any desired format. For example:
+
+```sh
+$ echo "Hello" | ppp line -n 'print(line + " World!")'
+Hello World!
+```
+
+Please note the presence of the `-n` option in the command above. If you omit this option, the output will look like this:
+
+```sh
+$ echo "Hello" | ppp line 'print(line + " World!")'
+Hello World!
+None
+```
+
+So, what's happening here? When you have questions about pypipe's behavior, a good approach is to inspect the code generated using the `-p, --print` option.
+
+```sh
+~$ echo "Hello" | ppp line  'print(line + " World!")' -p
+# IMPORT
+import sys
+from functools import partial
+
+# PRE
+_p = partial(print, sep="\t")  # ABBREV
+I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV
+
+def _print(*args, sep='\t'):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        print(sep.join(str(v) for v in args[0]))
+    else:
+        print(sep.join(str(v) for v in args))
+
+
+for i, line in enumerate(sys.stdin, 1):
+    line = line.rstrip("\r\n")
+    l = line  # ABBREV
+    # LOOP HEAD
+    # LOOP FILTER
+    # MAIN
+    _print(print(line + " World!"))
+
+# POST
+```
+
+In this case, running `ppp line 'print(line + " World!")' -p` should reveal a line in the generated code like `_print(print(line + " World!"))`. This is due to a unique feature of pypipe called as [Code wrapping](#code-wrappping).
+
+Let's make a slight modification to the command by removing the print function:
+
+```sh
+$ echo "Hello" | ppp line 'line + " World!"'
+Hello World!
+```
+
+Indeed, pypipe is designed to allow the omission of the print function for less typing.
+
+### Change the behavior of the `_print` function
+By default, the `_print({})` wrapper is used. The `_print` function is an internally implemented output function in pypipe and has the following implementation:
+
+```python
+def _print(*args, sep='\t'):
+    if len(args) is 1 and isinstance(args[0], (list, tuple)):
+        print(sep.join(str(v) for v in args[0]))
+    else:
+        print(sep.join(str(v) for v in args))
+```
+You can replace the implementation of the _print function using the `-F FORMAT, --output-format FORMAT` option. pypipe allows you to control the output format by changing the implementation of the _print function.
+
+#### `-Fd, -F default, --output-format=default`
+Default output format.
+
+Implementation of the _print function: as described above.
+
+Output example:
+```sh
+$ echo '["aaa", "bbb", "ccc"]' | ppp --json -Fd dic
+aaa	bbb	ccc
+```
+
+#### `-Fj, -F json, --output-format=json`
+Converts `dict`, `list`, and `tuple` to JSON format for output. However, when a single string is passed, it will not be enclosed in double quotes (meaning it is not in JSON string format).
+
+Implementation of the `_print` function:
+```python
+def _json(v):
+    if isinstance(v, (dict, list, tuple)):
+        v = json.dumps(v)
+    elif not isinstance(v, str):
+        v = str(v)
+    return v
+
+def _print(*args, sep='\t'):
+    print(sep.join(_json(v) for v in args))
+```
+
+Output example:
+
+```sh
+$ echo '["aaa", "bbb", "ccc"]' | ppp --json -Fj dic
+["aaa", "bbb", "ccc"]
+```
+
+#### `-Fn, -F native, --output-format=native`
+Uses the standard print function for output.
+
+Implementation of the `_print` function:
+```python
+_print = partial(print, sep='\t')
+```
+
+Output example:
+```sh
+$ echo '["aaa", "bbb", "ccc"]' | ppp --json -Fn dic
+['aaa', 'bbb', 'ccc']
+
+```
+
+### Change the output delimiter `-D DELIMITER, --output-delimiter DELIMITER`
+You can change the output delimiter using the `-D DELIMITER, --output-delimiter DELIMITER` option. The delimiter does not have to be a single character, you can specify multiple characters [^1].
+
+```sh
+$ cat staff.txt | ppp rec -D ' | '
+Name | Weight | Birth | Age | Species | Class
+Simba | 250 | 1994-06-15 | 29 | Lion | Mammal
+Dumbo | 4000 | 1941-10-23 | 81 | Elephant | Mammal
+George | 20 | 1939-01-01 | 84 | Monkey | Mammal
+Pooh | 1 | 1921-08-21 | 102 | Teddy bear | Artifact
+Bob | 0 | 1999-05-01 | 24 | Sponge | Demosponge
+```
+
+[^1]: Internally, the character specified using the `-D, --output-delimiter` option is passed as the `sep` argument to the `_print` function. Then, you can specify multiple characters for `sep`. However, it's important to note that in the `csv` command, a different output function using `csv.writer` is used as a wrapper, rather than the `_print` function. In this case, the character specified using the `-D, --output-delimiter` option is passed as the `delimiter` argument to `csv.writer`, and specifying multiple characters for the delimiter is not possible.
+
+#### `-L, --linebreak`
+The `-L, --linebreak` option has the same meaning as `-D '\n', --output-delimiter '\n'`. It is useful when connecting pypipe's output to pypipe. Instead of writing a for loop in pypipe, you can use `-L, --linebreak` to connect to the next pypipe, enabling you to achieve similar processing as nested for loops.
+
+Using `-L` to output with line breaks:
+```sh
+$ cat staff.json|ppp text -j '*dic["data"]' -Fj -L
+{"Name": "Simba", "Weight": 250, "Birth": "1994-06-15", "Age": 29, "Species": "Lion", "Class": "Mammal"}
+{"Name": "Dumbo", "Weight": 4000, "Birth": "1941-10-23", "Age": 81, "Species": "Elephant", "Class": "Mammal"}
+{"Name": "George", "Weight": 20, "Birth": "1939-01-01", "Age": 84, "Species": "Monkey", "Class": "Mammal"}
+{"Name": "Pooh", "Weight": 1, "Birth": "1921-08-21", "Age": 102, "Species": "Teddy bear", "Class": "Artifact"}
+{"Name": "Bob", "Weight": 0, "Birth": "1999-05-01", "Age": 24, "Species": "Sponge", "Class": "Demosponge"}
+```
+To further process this output:
+
+```sh
+$ cat staff.json | ppp text -j '*dic["data"]' -Fj -L | ppp -j 'dic["Weight"]' | ppp c -N sum
+4271
+```
+
+This can also be written as follows. Please use your preferred method:
+```sh
+$ cat staff.json|ppp text -j '
+> for r in dic["data"]:
+>     I += r["Weight"]
+> ' -n -a 'print(I)'
+4271
+```
+## Counter `-c, --counter`
 Using the `-c, --counter` option allows for easy data aggregation. When you specify the `-c, --counter` option, it creates an instance of collections.Counter, which can be accessed as either `counter` or `c`. The `-c, --counter` option is available for use in all commands.
 
 An example of aggregating data by the 'Gender' and 'Hobby' fields.
@@ -581,6 +766,10 @@ $ seq 5 |ppp -i math 'line, math.sqrt(int(line))'
 4       2.0
 5       2.23606797749979
 ```
+
+## Pager
+pypipe, by default, pipes the output to a pager. The default pager is less (recommended, tested). If you want to disable the pager, you can set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can change the pager by setting the `PYPIPE_PAGER` environment variable to the path of the pager.
+
 <!-- ## Misc
 
 ### pypipe only supports standard input.

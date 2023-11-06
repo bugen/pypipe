@@ -38,6 +38,7 @@ main() {
     enter "cat staff.txt| ppp rec -l 6 f6,f5,f1"
     enter "cat staff.txt| ppp rec -H -f 'dic[\"Class\"] != \"Mammal\"'"
     enter "cat staff.txt| ppp rec -H -l6 --counter f6"
+    enter "cat staff.txt| ppp rec -H --view"
     prompt
     sleep 2
     type " "
