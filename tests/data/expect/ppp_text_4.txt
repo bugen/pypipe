@@ -1,0 +1,13 @@
+[Record 1]
+1  {'data': [{'Age': 29, 'Birth': '1994-06-15', 'Class': 'Mammal', 'Name': 'Simba', 'Species': 'Lion', 'Weight': 250},
+.            {'Age': 81, 'Birth': '1941-10-23', 'Class': 'Mammal', 'Name': 'Dumbo', 'Species': 'Elephant', 'Weight': 4000},
+.            {'Age': 84, 'Birth': '1939-01-01', 'Class': 'Mammal', 'Name': 'George', 'Species': 'Monkey', 'Weight': 20},
+.            {'Age': 102,
+.             'Birth': '1921-08-21',
+.             'Class': 'Artifact',
+.             'Name': 'Pooh',
+.             'Species': 'Teddy bear',
+.             'Weight': 1},
+.            {'Age': 24, 'Birth': '1999-05-01', 'Class': 'Demosponge', 'Name': 'Bob', 'Species': 'Sponge', 'Weight': 0}],
+.   'number_of_records': 5}
+

@@ -162,6 +162,72 @@ for v, c in counter.most_common():
 """.lstrip()
 
 
+VIEW_TMPL = r"""
+CLEAR = '\033[0m'
+GREEN = '\033[32m'
+CYAN = '\033[36m'
+BLUE = '\033[34m'
+BOLD = '\033[1m'
+
+def color(s, color_code=CYAN, bold=False):
+    if color_code is None:
+        return s
+    return f"{BOLD}{color_code}{s}{CLEAR}" if bold else f"{color_code}{s}{CLEAR}"
+
+nocolor = partial(color, color_code=None)
+cyan = partial(color, color_code=CYAN)
+green = partial(color, color_code=GREEN)
+
+class Viewer:
+
+    def __init__(self, colored=True):
+        self.num = 1
+        self.color1, self.color2 = (cyan, green) if colored else (nocolor, nocolor)
+
+    def wlen(self, w):
+        return sum(2 if east_asian_width(c) in "FWA" else 1 for c in w)
+
+    def ljust(self, w, length):
+        return w + " " * max(length - self.wlen(w), 0)
+
+    def format(self, val):
+        if isinstance(val, (dict, list, tuple, set)):
+            return pformat(val, indent=1, width=120)
+        return str(val)
+
+    def _view(self, vals):
+        num_width = len(str(len(vals)))
+        tmpl = rf"{{0:<{num_width}}}  {{1}}"
+        for i, val in enumerate(vals, 1):
+            for j, line in enumerate(self.format(val).split("\n")):
+                if j == 0:
+                    print(tmpl.format(i, self.color2(line)))
+                else:
+                    print(tmpl.format('.', self.color2(line)))
+
+    def _view_with_headers(self, vals, headers):
+        num_width = len(str(len(vals)))
+        header_width = max(self.wlen(h) for h in headers)
+        tmpl = rf"{{0:<{num_width}}} | {{1}} | {{2}}"
+        for i, (header, val) in enumerate(zip(headers, vals), 1):
+            for j, line in enumerate(self.format(val).split("\n")):
+                if j == 0:
+                    print(tmpl.format(i, self.ljust(header, header_width), self.color2(line)))
+                else:
+                    print(tmpl.format('', '', self.color2(line)))
+
+    def view(self, *args, recnum=None, headers=None):
+        print(self.color1(f'[Record {recnum or self.num}]', bold=True))
+        vals = args[0] if len(args) == 1 and isinstance(args[0], (list, tuple)) else args
+        if headers and len(vals) == len(headers):
+            self._view_with_headers(vals, headers)
+        else:
+            self._view(vals)
+        print()
+        self.num += 1
+"""
+
+
 def indent(code, level=1):
     return INDENT * level + code
 
@@ -230,6 +296,9 @@ def gen_import(args):
     codes = ["# IMPORT"]
     codes.append("import sys")
     codes.append("from functools import partial")
+    if args.view:
+        codes.append("from pprint import pformat")
+        codes.append("from unicodedata import east_asian_width")
     if is_json_needed(args):
         codes.append("import json")
     if args.counter:
@@ -258,6 +327,11 @@ def gen_pre(args):
     codes = ["# PRE"]
     codes.append(r'_p = partial(print, sep="\t")  # ABBREV')
     codes.append(r'I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV')
+    if args.view:
+        colored = args.color == 'always' or (args.color == 'auto' and sys.stdout.isatty())
+        codes.append(VIEW_TMPL)
+        codes.append(rf"viewer = Viewer(colored={colored})")
+        codes.append(r"view = viewer.view")
     if is_json_needed(args):
         codes.append(JSON_FUNC)
     codes.append(FORMAT_PRINT_FUNC[args.output_format].format(sep=args.output_delimiter))
@@ -337,12 +411,13 @@ def line_handler(args):
         loop_head_codes.extend(extend_codes(args.loop_heads))
         return "\n".join(indent(c) for c in loop_head_codes)
 
+    wrapper = r"view({})" if args.view else r"_print({})"
     code = TEMPLATE_LINE.format(
         imp=gen_import(args),
         pre=gen_pre(args),
         loop_head=gen_loop_head(),
         loop_filter=gen_loop_filter(args),
-        main=gen_main(args, "line", r"_print({})"),
+        main=gen_main(args, "line", wrapper),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -363,6 +438,9 @@ def rec_handler(args):
         parse_header = rf"header = next(sys.stdin).rstrip('\r\n').split('{args.delimiter}')" if args.header else ""
         parse_line = rf"rec = line.split('{args.delimiter}')"
 
+    wrapper = r"_print({})"
+    if args.view:
+        wrapper = r"view({}, headers=header)" if args.header else r"view({})"
     code = TEMPLATE_REC.format(
         imp=gen_import(args),
         re_compile=re_compile,
@@ -371,7 +449,7 @@ def rec_handler(args):
         parse_line=parse_line,
         loop_head=gen_loop_head_rec_csv(args),
         loop_filter=gen_loop_filter(args),
-        main=gen_main(args, "rec", r"_print({})"),
+        main=gen_main(args, "rec", wrapper),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -388,6 +466,9 @@ def csv_handler(args):
     writer_opts = ", ".join(f'{k}={v}' for k, v in csv_writer_opts)
     parse_header = "header = next(reader)" if args.header else ""
 
+    wrapper = r"_write({}, writer=writer)"
+    if args.view:
+        wrapper = r"view({}, headers=header)" if args.header else r"view({})"
     code = TEMPLATE_CSV.format(
         imp=gen_import(args),
         reader_opts=reader_opts,
@@ -396,7 +477,7 @@ def csv_handler(args):
         pre=gen_pre(args),
         loop_head=gen_loop_head_rec_csv(args),
         loop_filter=gen_loop_filter(args),
-        main=gen_main(args, "rec", "_write({}, writer=writer)"),
+        main=gen_main(args, "rec", wrapper),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -411,11 +492,12 @@ def text_handler(args):
             codes.append(f'd = dic  #ABBREV')
         return "\n".join(codes)
 
+    wrapper = r"view({})" if args.view else r"_print({})"
     code = TEMPLATE_TEXT.format(
         imp=gen_import(args),
         pre=gen_pre(args),
         pre_main=gen_pre_main(),
-        main=gen_main(args, "text", "_print({})", level=0),
+        main=gen_main(args, "text", wrapper, level=0),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -429,13 +511,14 @@ def file_handler(args):
             loop_head_codes.append("dic = json.loads(text)")
         return "\n".join(indent(c, 2) for c in loop_head_codes)
 
+    wrapper = r"view({})" if args.view else r"_print({})"
     code = TEMPLATE_FILE.format(
         imp=gen_import(args),
         pre=gen_pre(args),
         mode=args.mode,
         loop_head=gen_loop_head(),
         loop_filter=gen_loop_filter(args, 2),
-        main=gen_main(args, "text", r"_print({})", level=2),
+        main=gen_main(args, "text", wrapper, level=2),
         post=gen_post(args),
     )
     exec_code(code, args)
@@ -468,6 +551,7 @@ def custom_handler(args):
         loop_head_codes = extend_codes(args.loop_heads, "LOOP HEAD")
         return "\n".join(indent(c, code_indent) for c in loop_head_codes)
 
+    wrapper = r"view({})" if args.view else wrapper
     params = {
         "imp": gen_import(args),
         "pre": gen_pre(args),
@@ -509,6 +593,15 @@ def main(argv=None):
 
     ## COMMON OPTIONS
     common_parser = argparse.ArgumentParser(add_help=False)
+    common_parser.add_argument(
+        "-v", '--view',
+        action="store_true",
+    )
+    common_parser.add_argument(
+        "-k", '--color',
+        choices=['always', 'auto', 'never'],
+        default='auto',
+    )
     common_parser.add_argument(
         "-p", '--print',
         action="store_true",
@@ -701,7 +794,6 @@ def main(argv=None):
         default=[],
         type=key_value,
     )
-    # custom_parser.add_argument("name")
     custom_parser.add_argument(
         "-N", "--name",
         required=True,
