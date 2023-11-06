@@ -17,8 +17,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import argparse
+import atexit
+import subprocess
 import sys
-from os import chmod
+from os import chmod, environ
 
 __version__ = "0.2.0"
 
@@ -166,7 +168,6 @@ VIEW_TMPL = r"""
 CLEAR = '\033[0m'
 GREEN = '\033[32m'
 CYAN = '\033[36m'
-BLUE = '\033[34m'
 BOLD = '\033[1m'
 
 def color(s, color_code=CYAN, bold=False):
@@ -226,6 +227,34 @@ class Viewer:
         print()
         self.num += 1
 """
+
+def enable_pager():
+    if not sys.stdout.isatty():
+        return False
+    if environ.get('PYPIPE_PAGER_ENABLED', 'true').lower() == 'false':
+        return False
+    pager = environ.get('PYPIPE_PAGER') or environ.get('PAGER', 'less')
+    pager_opts = ["-R", "-K", "-F"] if pager.split('/')[-1] == "less" else []
+    proc = None
+    stdout_save = sys.stdout
+
+    def on_exit():
+        if proc:
+            try:
+                proc.stdin.close()
+                proc.wait()
+            except (BrokenPipeError, KeyboardInterrupt) as e:
+                pass
+        sys.stdout = stdout_save
+
+    proc = subprocess.Popen(
+        [pager] + pager_opts,
+        stdin=subprocess.PIPE,
+        universal_newlines=True,
+    )
+    sys.stdout = proc.stdin
+    atexit.register(on_exit)
+    return True
 
 
 def indent(code, level=1):
@@ -328,9 +357,8 @@ def gen_pre(args):
     codes.append(r'_p = partial(print, sep="\t")  # ABBREV')
     codes.append(r'I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV')
     if args.view:
-        colored = args.color == 'always' or (args.color == 'auto' and sys.stdout.isatty())
         codes.append(VIEW_TMPL)
-        codes.append(rf"viewer = Viewer(colored={colored})")
+        codes.append(rf"viewer = Viewer(colored={args.colored})")
         codes.append(r"view = viewer.view")
     if is_json_needed(args):
         codes.append(JSON_FUNC)
@@ -815,6 +843,10 @@ def main(argv=None):
             args.output_delimiter = args.delimiter
         else:
             args.output_delimiter = r'\t'
+
+    args.colored = args.color == 'always' or (args.color == 'auto' and sys.stdout.isatty())
+    if not args.print and not args.output:
+        enable_pager()
 
     args.handler(args)
 
