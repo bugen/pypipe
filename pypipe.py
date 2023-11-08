@@ -598,7 +598,7 @@ def custom_handler(args):
     exec_code(code, args)
 
 
-def main(argv=None):
+def main(argv=sys.argv[1:]):
     def key_value(s):
         kv = s.split("=", 1)
         return kv[0], kv[1]
@@ -852,4 +852,4 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
