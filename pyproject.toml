@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pypipe-ppp"
+dynamic = ["version"]
+description = 'A Python command-line tool for pipeline processing'
+readme = "README.md"
+requires-python = ">=3.6"
+license = "Apache-2.0"
+keywords = []
+authors = [
+  { name = "bugen", email = "paradise.on.paradise@gmail.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = []
+
+[project.urls]
+Documentation = "https://github.com/bugen/pypipe#readme"
+Issues = "https://github.com/bugen/pypipe/issues"
+Source = "https://github.com/bugen/pypipe"
+
+[project.scripts]
+pypipe = "pypipe:main"
+# To support `pipx run`, there should be a console script whose name matches
+# the PyPI name of the package
+pypipe-ppp = "pypipe:main"
+# https://github.com/bugen/pypipe/pull/8#discussion_r1379798279
+ppp = "pypipe:main"
+
+[tool.hatch.version]
+path = "pypipe.py"
