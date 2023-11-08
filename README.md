@@ -527,7 +527,7 @@ pypipe is a command-line tool for pipeline processing, but it can also be though
 ### Print generated code. `-p, --print`
 To check the generated code, you can use the `-p, --print` option.
 ```sh
-ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "staff"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}", file=sys.stderr)' -p
+ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "staff"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}")' -p
 ```
 The generated code is output as follows.
 ```python
@@ -548,11 +548,11 @@ def _open(path):
 _p = partial(print, sep="\t")  # ABBREV
 I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV
 
-def _print(*args, delimiter='\t'):
+def _print(*args, sep='\t'):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
-        print(*args[0], sep=delimiter)
+        print(sep.join(str(v) for v in args[0]))
     else:
-        print(*args, sep=delimiter)
+        print(sep.join(str(v) for v in args))
 
 total = 0
 _p("PATH", "SIZE", "MD5")
@@ -575,7 +575,7 @@ print(f"Total size: {total}", file=sys.stderr)
 
 Check that there are no issues with the generated code and execute it.
 ```sh
-$ find docs -type f |ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "staff"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}", file=sys.stderr)'
+$ find docs -type f |ppp file -m rb -i hashlib -b 'total = 0' -b '_p("PATH", "SIZE", "MD5")' -e 'size = len(text)' -f 'path.stem == "staff"' 'total += size' 'path, size, hashlib.md5(text).hexdigest()' -a 'print(f"Total size: {total}")'
 PATH    SIZE    MD5
 docs/staff.json 1046    3f81986424eea2648bcabec324f8e959
 docs/staff.txt  231     a0757fb3838ed1235b21f96e1953445c
@@ -583,7 +583,6 @@ docs/staff.xml  1042    7d36d493c1dd7594db3426f242b667f6
 docs/staff.csv  231     6cba6414c49b8762d6a49e2d9a62e563
 Total size: 2550
 ```
-
 
 ### Save generated code to a file. `-o PATH, --output PATH`
 For writing more complex code, it's a good practice to create a template code with pypipe and edit the templated code manually. Here's the process you can follow:
@@ -609,6 +608,12 @@ $ ppp text -pqrn "for word in text.split():"  "    print(word)"
 import sys
 from functools import partial
 
+def _print(*args, sep='\t'):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        print(sep.join(str(v) for v in args[0]))
+    else:
+        print(sep.join(str(v) for v in args))
+
 text = sys.stdin.read()
 for word in text.split():  # <- HERE
     print(word)            # <- HERE
@@ -633,18 +638,17 @@ import sys
 from functools import partial
 
 
-def _print(*args, delimiter='\t'):
+def _print(*args, sep='\t'):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
-        print(*args[0], sep=delimiter)
+        print(sep.join(str(v) for v in args[0]))
     else:
-        print(*args, sep=delimiter)
+        print(sep.join(str(v) for v in args))
 
 
 for i, line in enumerate(sys.stdin, 1):
     line = line.rstrip("\r\n")
-    _print(line)  # Default code with wrappping.
+    _print(line)   # Default code with code wrappping.
 ```
-
 
 ### Code wrapping
 By default, pypipe wraps the last code specified in the arguments with a predefined wrapper. For example, in `ppp line`, it uses `'_print({})'` as the wrapper. However, if the `-c, --counter` option is specified, it uses `'counter[{}] += 1'` as the wrapper instead.
@@ -656,11 +660,11 @@ import sys
 from functools import partial
 
 
-def _print(*args, delimiter='\t'):
+def _print(*args, sep='\t'):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
-        print(*args[0], sep=delimiter)
+        print(sep.join(str(v) for v in args[0]))
     else:
-        print(*args, sep=delimiter)
+        print(sep.join(str(v) for v in args))
 
 
 for i, line in enumerate(sys.stdin, 1):
@@ -680,10 +684,17 @@ from functools import partial
 _p = partial(print, sep="\t")  # ABBREV
 I, S, B, L, D, SET = 0, "", False, [], {}, set()  # ABBREV
 
+def _print(*args, sep='\t'):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        print(sep.join(str(v) for v in args[0]))
+    else:
+        print(sep.join(str(v) for v in args))
+
+
 for i, line in enumerate(sys.stdin, 1):
     line = line.rstrip("\r\n")
     l = line  # ABBREV
-    I = max(len(line), I)
+    I = max(len(line), I)   # No wrapping
 
 print(I)
 ```
@@ -697,6 +708,13 @@ $ ppp rec --pqrn -b 'TOTAL = 0' -b 'MAX = 0'  'TOTAL += int(rec[0])' 'MAX = max(
 ```python
 import sys
 from functools import partial
+
+
+def _print(*args, sep='\t'):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        print(sep.join(str(v) for v in args[0]))
+    else:
+        print(sep.join(str(v) for v in args))
 
 
 TOTAL = 0   # PRE
@@ -730,6 +748,14 @@ $ ppp line -pqrn -e 'line = line.replace("foo", "bar")' -e 'line = line.upper()'
 import sys
 from functools import partial
 
+
+def _print(*args, sep='\t'):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        print(sep.join(str(v) for v in args[0]))
+    else:
+        print(sep.join(str(v) for v in args))
+
+
 for i, line in enumerate(sys.stdin, 1):
     line = line.rstrip("\r\n")
     line = line.replace("foo", "bar")  # LOOP_HEAD
@@ -752,6 +778,13 @@ import sys
 from functools import partial
 import zlib                    # <- HERE
 from base64 import b64encode   # <- HERE
+
+def _print(*args, sep='\t'):
+    if len(args) == 1 and isinstance(args[0], (list, tuple)):
+        print(sep.join(str(v) for v in args[0]))
+    else:
+        print(sep.join(str(v) for v in args))
+
 
 text = sys.stdin.read()
 print(b64encode(zlib.compress(text.encode())))
