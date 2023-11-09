@@ -35,6 +35,15 @@ ln -s pypipe.py ppp
 > **Note**
 > pypipe requires Python 3.6 or later.
 
+pypipe can also be installed in the standard way for Python packages, using [pip](https://pip.pypa.io/en/stable/) or any compatible tool such as [pipx](https://pypa.github.io/pipx/).
+```sh
+pipx install pypipe-ppp
+```
+It also supports running directly with pipx without installation.
+```sh
+pipx run pypipe-ppp <args>
+```
+
 You can also use it with [Wasmer](https://wasmer.io/):
 ```sh
 alias ppp="wasmer run bugen/pypipe -- "
