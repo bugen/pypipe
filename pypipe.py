@@ -243,7 +243,7 @@ def enable_pager():
             try:
                 proc.stdin.close()
                 proc.wait()
-            except (BrokenPipeError, KeyboardInterrupt) as e:
+            except (BrokenPipeError, KeyboardInterrupt):
                 pass
         sys.stdout = stdout_save
 
@@ -365,7 +365,7 @@ def gen_pre(args):
     codes.append(FORMAT_PRINT_FUNC[args.output_format].format(sep=args.output_delimiter))
     if args.counter:
         codes.append(r"counter = Counter()")
-        codes.append(rf"c = counter  #ABBREV")
+        codes.append(r"c = counter  #ABBREV")
     if args.pre_codes:
         codes.extend(extend_codes(args.pre_codes))
     return "\n".join(codes)
@@ -387,7 +387,8 @@ def gen_main(args, default_code, wrapper, level=1):
     if not args.no_wrapping:
         spaces = ""
         for c in codes[-1]:
-            if c != " ": break
+            if c != " ":
+                break
             spaces += c
         if args.counter:
             codes[-1] = spaces + r"counter[{}] += 1".format(codes[-1].lstrip())
@@ -435,7 +436,7 @@ def line_handler(args):
         loop_head_codes = ["# LOOP HEAD"]
         if args.json:
             loop_head_codes.append('dic = json.loads(line)')
-            loop_head_codes.append(f'd = dic  #ABBREV')
+            loop_head_codes.append('d = dic  #ABBREV')
         loop_head_codes.extend(extend_codes(args.loop_heads))
         return "\n".join(indent(c) for c in loop_head_codes)
 
@@ -517,7 +518,7 @@ def text_handler(args):
         codes = []
         if args.json:
             codes.append("dic = json.loads(text)")
-            codes.append(f'd = dic  #ABBREV')
+            codes.append('d = dic  #ABBREV')
         return "\n".join(codes)
 
     wrapper = r"view({})" if args.view else r"_print({})"
