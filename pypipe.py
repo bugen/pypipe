@@ -215,7 +215,7 @@ class Viewer:
                 if j == 0:
                     print(tmpl.format(i, self.ljust(header, header_width), self.color2(line)))
                 else:
-                    print(tmpl.format('', '', self.color2(line)))
+                    print(tmpl.format('', self.ljust('', header_width), self.color2(line)))
 
     def view(self, *args, recnum=None, headers=None):
         print(self.color1(f'[Record {recnum or self.num}]', bold=True))
