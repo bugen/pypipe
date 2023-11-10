@@ -810,7 +810,7 @@ $ seq 5 |ppp -i math 'line, math.sqrt(int(line))'
 ```
 
 ## Pager
-pypipe, by default, pipes the output to a pager. The default pager is less (recommended, tested). If you want to disable the pager, you can set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can change the pager by setting the `PYPIPE_PAGER` environment variable to the path of the pager.
+pypipe, by default, pipes the output to a pager. The default pager command is `less -R -F -K` (recommended, tested). If you want to disable the pager, you can set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can change the pager command by setting the `PYPIPE_PAGER` environment variable.
 
 <!-- ## Misc
 
