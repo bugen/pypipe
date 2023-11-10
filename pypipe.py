@@ -233,8 +233,7 @@ def enable_pager():
         return False
     if environ.get('PYPIPE_PAGER_ENABLED', 'true').lower() == 'false':
         return False
-    pager = environ.get('PYPIPE_PAGER') or environ.get('PAGER', 'less')
-    pager_opts = ["-R", "-K", "-F"] if pager.split('/')[-1] == "less" else []
+    pager = environ.get('PYPIPE_PAGER', 'less -R -F -K')
     proc = None
     stdout_save = sys.stdout
 
@@ -248,7 +247,7 @@ def enable_pager():
         sys.stdout = stdout_save
 
     proc = subprocess.Popen(
-        [pager] + pager_opts,
+        pager.split(),
         stdin=subprocess.PIPE,
         universal_newlines=True,
     )
