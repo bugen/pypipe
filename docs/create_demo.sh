@@ -7,19 +7,18 @@
 set -e
 set -u
 
+delay=${1:-0}
 PROMPT="$"
 
 enter() {
     INPUT=$1
-    DELAY=1
-
-    prompt
-    sleep "$DELAY"
+    sleep 1
     type "$INPUT"
     sleep 0.5
     printf '%b' "\\n"
     eval "$INPUT"
     type "\\n"
+    prompt
 }
 
 prompt() {
@@ -30,6 +29,10 @@ type() {
     printf '%b' "$1" | pv -qL $((10+(-2 + RANDOM%5)))
 }
 
+clear -x
+prompt
+sleep ${delay}
+
 main() {
     IFS='%'
     enter "cat staff.txt"
@@ -39,9 +42,8 @@ main() {
     enter "cat staff.txt| ppp rec -H -f 'dic[\"Class\"] != \"Mammal\"'"
     enter "cat staff.txt| ppp rec -H -l6 --counter f6"
     enter "cat staff.txt| ppp rec -H --view"
-    prompt
     sleep 2
-    type " "
+    type "\\n"
     unset IFS
 }
 
