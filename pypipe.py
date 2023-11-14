@@ -228,12 +228,27 @@ class Viewer:
         self.num += 1
 """
 
-def enable_pager():
+
+def is_colored(args):
+    if args.color == 'always':
+        return True
+    elif args.color == 'never':
+        return False
+    if environ.get('PYPIPE_VIEW_COLORED', 'true').lower() == 'false':
+        return False
+    return sys.stdout.isatty()
+
+
+def enable_pager(args):
     if not sys.stdout.isatty():
         return False
     if environ.get('PYPIPE_PAGER_ENABLED', 'true').lower() == 'false':
         return False
     pager = environ.get('PYPIPE_PAGER', 'less -R -F -K')
+    if args.print:
+        pager = environ.get('PYPIPE_PRINT_PAGER', pager)
+    elif args.view:
+        pager = environ.get('PYPIPE_VIEW_PAGER', pager)
     proc = None
     stdout_save = sys.stdout
 
@@ -844,9 +859,9 @@ def main(argv=sys.argv[1:]):
         else:
             args.output_delimiter = r'\t'
 
-    args.colored = args.color == 'always' or (args.color == 'auto' and sys.stdout.isatty())
-    if not args.print and not args.output:
-        enable_pager()
+    args.colored = is_colored(args)
+    if not args.output:
+        enable_pager(args)
 
     args.handler(args)
 
