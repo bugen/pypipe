@@ -324,6 +324,8 @@ In View mode, pypipe automatically determines whether to apply colorization. By 
 - Using `-k always` or `--color always` forces colorization at all times.
 - Using `-k never` or `--color never` disables colorization.
 
+Also, by setting the `PYPIPE_VIEW_COLORED` environment variable to `false`, you can disable colors by default. However, if the `-k, --color` option is specified, it takes precedence.
+
 ## Output formatting
 In pypipe, you have the flexibility to write code to output results in any desired format. For example:
 
@@ -811,6 +813,19 @@ $ seq 5 |ppp -i math 'line, math.sqrt(int(line))'
 
 ## Pager
 pypipe, by default, pipes the output to a pager. The default pager command is `less -R -F -K` (recommended, tested). If you want to disable the pager, you can set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can change the pager command by setting the `PYPIPE_PAGER` environment variable.
+
+### Pager for `-p, --print`
+You can change the Pager used when the `-p, --print` option is specified to a different Pager than the default. For example, by setting the `PYPIPE_PRINT_PAGER` environment variable as shown below, you can use [bat](https://github.com/sharkdp/bat) to display syntax-highlighted code:
+```ini
+export PYPIPE_PRINT_PAGER='bat -l python --file-name=PYPIPE_GENERATED_CODE'
+```
+
+#### Output example when 'bat' is set as the Pager.
+![Alt text](docs/bat_pager_sample.png)
+
+
+### Pager for `-v, --view`
+Similarly, by setting the `PYPIPE_VIEW_PAGER` environment variable, you can change the Pager used when the `-v, --view` option is specified to a different Pager than the default. Also, if you do not want to pass color control escape sequences to the Pager, you can disable colors by setting the `PYPIPE_VIEW_COLORED` environment variable to `false`, thereby avoiding this.
 
 <!-- ## Misc
 
