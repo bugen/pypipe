@@ -18,6 +18,7 @@ limitations under the License.
 """
 import argparse
 import atexit
+import signal
 import subprocess
 import sys
 from os import chmod, environ
@@ -244,7 +245,7 @@ def enable_pager(args):
         return False
     if environ.get('PYPIPE_PAGER_ENABLED', 'true').lower() == 'false':
         return False
-    pager = environ.get('PYPIPE_PAGER', 'less -R -F -K')
+    pager = environ.get('PYPIPE_PAGER', 'less -R -F')
     if args.print:
         pager = environ.get('PYPIPE_PRINT_PAGER', pager)
     elif args.view:
@@ -268,6 +269,7 @@ def enable_pager(args):
     )
     sys.stdout = proc.stdin
     atexit.register(on_exit)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     return True
 
 
