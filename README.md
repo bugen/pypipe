@@ -816,7 +816,7 @@ pypipe, by default, pipes the output to a pager. The default pager command is `l
 
 ### Pager for `-p, --print`
 > [!Warning]
-> When interrupting with Ctrl-C while using `bat` as a pager, a display issue has been identified where the terminal output becomes corrupted (terminal command input is no longer visible). Exiting bat with `q`` avoids this issue.
+> When interrupting with Ctrl-C while using `bat` as a pager, a display issue has been identified where the terminal output becomes corrupted (terminal command input is no longer visible). Exiting bat with `q` avoids this issue.
 
 You can change the Pager used when the `-p, --print` option is specified to a different Pager than the default. For example, by setting the `PYPIPE_PRINT_PAGER` environment variable as shown below, you can use [bat](https://github.com/sharkdp/bat) to display syntax-highlighted code:
 ```ini
