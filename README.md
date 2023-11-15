@@ -812,9 +812,12 @@ $ seq 5 |ppp -i math 'line, math.sqrt(int(line))'
 ```
 
 ## Pager
-pypipe, by default, pipes the output to a pager. The default pager command is `less -R -F -K` (recommended, tested). If you want to disable the pager, you can set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can change the pager command by setting the `PYPIPE_PAGER` environment variable.
+pypipe, by default, pipes the output to a pager. The default pager command is `less -R -F` (recommended, tested). If you want to disable the pager, you can set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can change the pager command by setting the `PYPIPE_PAGER` environment variable.
 
 ### Pager for `-p, --print`
+> **Warning**
+> When interrupting with Ctrl-C while using `bat` as a pager, a display issue has been identified where the terminal output becomes corrupted (terminal command input is no longer visible). Exiting bat with `q`` avoids this issue.
+
 You can change the Pager used when the `-p, --print` option is specified to a different Pager than the default. For example, by setting the `PYPIPE_PRINT_PAGER` environment variable as shown below, you can use [bat](https://github.com/sharkdp/bat) to display syntax-highlighted code:
 ```ini
 export PYPIPE_PRINT_PAGER='bat -l python --file-name=PYPIPE_GENERATED_CODE'
