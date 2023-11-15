@@ -32,7 +32,7 @@ To make it easier to type, it's recommended to create a symbolic link.
 ln -s pypipe.py ppp
 ```
 
-> **Note**
+> [!Note]
 > pypipe requires Python 3.6 or later.
 
 pypipe can also be installed in the standard way for Python packages, using [pip](https://pip.pypa.io/en/stable/) or any compatible tool such as [pipx](https://pypa.github.io/pipx/).
@@ -113,7 +113,7 @@ By using the `-t FIELD_TYPES, --field-type FIELD_TYPES`, you can specify the typ
 $ echo 'Hello	100	10.2	True	{"id":100,"title":"sample"}'|ppp rec -l5 -t 2:i,3:f,4:b,5:j "type(f1),type(f2),type(f3),type(f4),type(f5)"
 <class 'str'>   <class 'int'>   <class 'float'> <class 'bool'>  <class 'dict'>
 ```
-> **Note**
+> [!Note]
 > When there is a header row in the data, using `-t` often results in errors when attempting to convert the header row's item names to the specified types. In such cases, you can avoid errors by using the `-H, --header` option to skip the header row.
 
 You can change the delimiter by using the `-d DELIMITER, --delimiter DELIMITER` option.
@@ -134,7 +134,7 @@ $ echo 'AAA      BBB CCC    DDD' | ppp rec -d '\s+' rec[2]
 CCC
 ```
 
-> **Note**
+> [!Note]
 > `-S, --spaces` option has the same meaning as `-d '\s+'`.
 
 You can change the output delimiter by using the `-D DELIMITER, --output-delimiter DELIMITER` option.
@@ -183,7 +183,7 @@ $ cat staff.json |ppp text -j 'dic["data"][0]'
 {'Name': 'Simba', 'Weight': 250, 'Birth': '1994-06-15', 'Age': 29, 'Species': 'Lion', 'Class': 'Mammal'}
 ```
 
-> **Note**
+> [!Note]
 > You can also use `-j, --json` option in `line` and `file`.
 
 ### `| ppp file`
@@ -815,7 +815,7 @@ $ seq 5 |ppp -i math 'line, math.sqrt(int(line))'
 pypipe, by default, pipes the output to a pager. The default pager command is `less -R -F` (recommended, tested). If you want to disable the pager, you can set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can change the pager command by setting the `PYPIPE_PAGER` environment variable.
 
 ### Pager for `-p, --print`
-> **Warning**
+> [!Warning]
 > When interrupting with Ctrl-C while using `bat` as a pager, a display issue has been identified where the terminal output becomes corrupted (terminal command input is no longer visible). Exiting bat with `q`` avoids this issue.
 
 You can change the Pager used when the `-p, --print` option is specified to a different Pager than the default. For example, by setting the `PYPIPE_PRINT_PAGER` environment variable as shown below, you can use [bat](https://github.com/sharkdp/bat) to display syntax-highlighted code:
