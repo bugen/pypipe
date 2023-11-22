@@ -17,7 +17,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import argparse
+import ast
 import atexit
+import importlib.util
 import signal
 import subprocess
 import sys
@@ -337,34 +339,105 @@ def is_json_needed(args):
             "field_type" in args and "j" in list(args.field_type.values()))
 
 
-def gen_import(args):
-    codes = ["# IMPORT"]
-    codes.append("import sys")
-    codes.append("from functools import partial")
+def get_imports(args):
+    imports = set()
+    imports.add("sys")
+    imports.add("from functools import partial")
     if args.view:
-        codes.append("from pprint import pformat")
-        codes.append("from unicodedata import east_asian_width")
+        imports.add("from pprint import pformat")
+        imports.add("from unicodedata import east_asian_width")
     if is_json_needed(args):
-        codes.append("import json")
+        imports.add("json")
     if args.counter:
-        codes.append("from collections import Counter")
+        imports.add("from collections import Counter")
     # REC
     if args.command == "rec":
         if args.regex or (args.delimiter != r'\t' and len(args.delimiter) > 1):
-            codes.append("import re")
+            imports.add("re")
     # CSV
     if args.command == "csv":
-        codes.append("import csv")
+        imports.add("csv")
     # FILE
     if args.command == "file":
-        codes.append("import gzip")
-        codes.append("from pathlib import Path")
-    if args.import_codes:
-        for i in args.import_codes:
-            if i.startswith('import ') or i.startswith('from '):
-                codes.append(i)
+        imports.add("gzip")
+        imports.add("from pathlib import Path")
+    return imports
+
+
+def get_auto_imports(args):
+
+    def _trace(node):
+        """
+        e.g.) math.sqrt(num) -> True, ['math', 'sqrt']
+        e.g.) urllib.parse.urlparse(url) -> True, ['urllib', 'parse', 'urlparse']
+        e.g.) datetime.datetime.now().isoformat() -> False, ['datetime', 'datetime', 'now']
+        """
+        if isinstance(node, ast.Attribute):
+            chained, ls = _trace(node.value)
+            if chained:
+                ls.append(node.attr)
+            return chained, ls
+        elif isinstance(node, ast.Subscript):
+            _, ls = _trace(node.value)
+            return False, ls
+        elif isinstance(node, ast.Call):
+            _, ls = _trace(node.func)
+            return False, ls
+        else:
+            return (True, [node.id]) if isinstance(node, ast.Name) else (False, [])
+
+    def _retrieve(tree):
+        ret = []
+        for node in ast.iter_child_nodes(tree):
+            if isinstance(node, ast.Attribute):
+                _, ls = _trace(node)
+                ret.append(ls[:-1])
             else:
-                codes.append(f"import {i}")
+                ret.extend(_retrieve(node))
+        return ret
+
+    def _extract_module(codes):
+        candidates = set()
+        code = '\n'.join(extend_codes(codes))
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            return candidates
+        for ls in _retrieve(tree):
+            for i in range(len(ls), 0, -1):
+                modulename = ".".join(ls[:i])
+                try:
+                    if importlib.util.find_spec(modulename) is not None:
+                        candidates.add(modulename)
+                        break
+                except (ModuleNotFoundError, AttributeError):
+                    continue
+        return candidates
+
+    modules = set()
+    for name in ("codes", "pre_codes", "post_codes", "loop_heads", "filters"):
+        if name in args:
+            modules.update(_extract_module(getattr(args, name) or []))
+    return modules
+
+
+def get_optional_imports(args):
+    return  {i for i in args.import_codes or []}
+
+
+def gen_import(args):
+    # Ensure that the import statements specified by the option comes later.
+    # For example, if we want to use orjson and specify `import orjson as json`,
+    # this import statement needs to be added after the import statement
+    # `import json` added by pypipe.
+    imports_opt = get_optional_imports(args)
+    imports = (get_imports(args) | get_auto_imports(args)) - imports_opt
+    codes = ["# IMPORT"]
+    for i in list(imports) + list(imports_opt):
+        if i.startswith('import ') or i.startswith('from '):
+            codes.append(i)
+        else:
+            codes.append(f"import {i}")
     return "\n".join(codes)
 
 

@@ -12,6 +12,8 @@ TEST_DATA_DIR = Path(__file__).resolve().parent / 'data'
 @pytest.mark.parametrize('input_text_file_name, expected_text_file_name, command', [
     ('staff.txt', 'ppp_line_1.txt', ['i, line.upper()', ]),
     ('staff.jsonlines.txt', 'ppp_line_2.txt', ['-j', 'dic["Name"]']),
+    ('echo_line_1.txt', 'ppp_line_3.txt', ['line, math.sqrt(int(line))',]),
+    ('echo_line_2.txt', 'ppp_line_4.txt', ['urllib.parse.urlparse(line)',]),
     ('staff.txt', 'ppp_rec_1.txt', ['rec', 'r[:3]']),
     ('staff.txt', 'ppp_rec_2.txt', ['rec', '-l5', 'f"{f1} is {f4} years old"']),
     ('staff.txt', 'ppp_rec_3.txt', ['rec', '-H', 'rec[0], dic["Birth"]']),

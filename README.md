@@ -14,6 +14,7 @@ ppp
 ## Quick links <!-- omit from toc -->
 - [Installation](#installation)
 - [Basic usage and Examples](#basic-usage-and-examples)
+- [Automatic Import and Explicit Import](#automatic-import-and-explicit-import)
 - [View mode `-v, --view`](#view-mode--v---view)
 - [Output formatting](#output-formatting)
 - [Counter `-c, --counter`](#counter--c---counter)
@@ -302,6 +303,24 @@ $ cat staff.xml |ppp custom -N xpath -O path='./Animal/Age'
 $ seq 10000| ppp c -Nsum -f 'rec[0] % 3 == 0'
 16668333
 ```
+
+## Automatic Import and Explicit Import
+pypipe attempts to automatically import the necessary modules. While explicit import is likely not required in most cases, it is also possible to explicitly import the necessary modules using the `-i IMPORT, --import IMPORT` option. The following examples all work in the same way:
+
+```sh
+$ seq 10 | ppp 'math.sqrt(int(line))'
+```
+```sh
+$ seq 10 | ppp -i math 'math.sqrt(int(line))'
+```
+```sh
+$ seq 10 | ppp -i 'from math import sqrt' 'sqrt(int(line))'
+```
+Using the explicit import format `from <module> import <function>` can be useful in cases where you need to use the `<function>` multiple times within the code.
+> [!Note]
+> See also [here](#import-modules--i-module---import-module) about `-i IMPORT, --import IMPORT` option.
+
+
 
 ## View mode `-v, --view`
 When using the `-v, --view` option, the output is pretty printed with colored formatting. Data formats with many items such as CSV, TSV, JSON, and others can be hard to read in their raw format, making the View mode particularly useful when inspecting such data. In View mode, `dict`, `list` and `tuple` are formatted using the standard library's `pprint`.
