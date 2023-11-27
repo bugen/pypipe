@@ -254,8 +254,10 @@ def enable_pager(args):
         pager = environ.get('PYPIPE_VIEW_PAGER', pager)
     proc = None
     stdout_save = sys.stdout
+    stat = {"is_exiting": False}
 
     def on_exit():
+        stat["is_exiting"] = True
         if proc:
             try:
                 proc.stdin.close()
@@ -264,14 +266,26 @@ def enable_pager(args):
                 pass
         sys.stdout = stdout_save
 
+    def sighandler(signum, frame):
+        # When entering only "ppp" without using a pipe, pypipe continues
+        # to wait for standard input and does not exit. In such cases,
+        # you may want to terminate it with Ctrl-C. However, if Ctrl-C
+        # is accepted while pypipe is waiting for he termination of the
+        # pager in the on_exit, the terminal display may be corrupted.
+        # Therefore, make Ctrl-C acceptable until just before the processing
+        # reaches on_exit, and ignore it if it hasn't reached on_exit yet.
+        if not stat["is_exiting"]:
+            exit()
+
     proc = subprocess.Popen(
         pager.split(),
         stdin=subprocess.PIPE,
         universal_newlines=True,
+        start_new_session=True,
     )
     sys.stdout = proc.stdin
     atexit.register(on_exit)
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGINT, sighandler)
     return True
 
 
