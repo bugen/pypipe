@@ -1,0 +1,2 @@
+Simba,250,1994-06-15,29,Lion,Mammal
+Dumbo,4000,1941-10-23,81,Elephant,Mammal

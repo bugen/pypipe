@@ -1,0 +1,6 @@
+Birth	Weight	Name
+1994-06-15	250	Simba
+1941-10-23	4000	Dumbo
+1939-01-01	20	George
+1921-08-21	1	Pooh
+1999-05-01	0	Bob

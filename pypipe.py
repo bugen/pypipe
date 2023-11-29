@@ -20,6 +20,7 @@ import argparse
 import ast
 import atexit
 import importlib.util
+import re
 import signal
 import subprocess
 import sys
@@ -55,8 +56,7 @@ for i, line in enumerate(sys.stdin, 1):
 TEMPLATE_REC = r"""
 {imp}
 
-{re_compile}
-{parse_header}
+{prepre}
 {pre}
 
 for i, line in enumerate(sys.stdin, 1):
@@ -83,8 +83,7 @@ def _write(*args, writer=None):
 reader = csv.reader(sys.stdin, {reader_opts})
 writer = csv.writer(sys.stdout, {writer_opts})
 _w = writer.writerow   # ABBREV
-{parse_header}
-
+{prepre}
 {pre}
 
 for i, rec in enumerate(reader, 1):
@@ -230,6 +229,28 @@ class Viewer:
         print()
         self.num += 1
 """
+
+
+def parse_all_codes(args):
+    code_trees = []
+    for name in ("codes", "pre_codes", "post_codes", "loop_heads", "filters"):
+        if name in args:
+            code = '\n'.join(extend_codes(getattr(args, name) or []))
+        try:
+            tree = ast.parse(code)
+            code_trees.append(tree)
+        except SyntaxError:
+            pass
+    return code_trees
+
+
+def check_field_variables_in_code(args):
+    pattern = re.compile(r'^f\d+$')
+    for tree in args.all_code_trees:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and pattern.match(node.id):
+                return True
+    return False
 
 
 def is_colored(args):
@@ -410,13 +431,8 @@ def get_auto_imports(args):
                 ret.extend(_retrieve(node))
         return ret
 
-    def _extract_module(codes):
+    def _extract_module(tree):
         candidates = set()
-        code = '\n'.join(extend_codes(codes))
-        try:
-            tree = ast.parse(code)
-        except SyntaxError:
-            return candidates
         for ls in _retrieve(tree):
             for i in range(len(ls), 0, -1):
                 modulename = ".".join(ls[:i])
@@ -429,9 +445,8 @@ def get_auto_imports(args):
         return candidates
 
     modules = set()
-    for name in ("codes", "pre_codes", "post_codes", "loop_heads", "filters"):
-        if name in args:
-            modules.update(_extract_module(getattr(args, name) or []))
+    for tree in args.all_code_trees:
+        modules.update(_extract_module(tree))
     return modules
 
 
@@ -519,12 +534,16 @@ def gen_loop_head_rec_csv(args):
                 "if len(rec) > {0} and rec[{0}]: rec[{0}] = {1}".format(
                     f - 1, FIELD_TYPE_TMPL[t].format(f"rec[{f-1}]"))
             )
-    if args.field_length:
-        # ex) f1, f2, f3, f4 = r[:4]
-        loop_head_codes.append("{} = {}".format(
-            ", ".join(f"f{i+1}" for i in range(args.field_length)),
-            f"r[:{args.field_length}]",
-        ))
+    if args.field_length is not None:
+        if args.field_length == 0:
+            # define field variables dinamically
+            loop_head_codes.append(r"_locals.update({f'f{j+1}': rec[j] for j in range(len(rec))})")
+        else:
+            # ex) f1, f2, f3, f4 = r[:4]
+            loop_head_codes.append("{} = {}".format(
+                ", ".join(f"f{i+1}" for i in range(args.field_length)),
+                f"r[:{args.field_length}]",
+            ))
     if args.header:
         loop_head_codes.append("dic = dict(zip(header, rec))")
         loop_head_codes.append("d = dic # ABBREV")
@@ -570,13 +589,13 @@ def rec_handler(args):
         parse_header = rf"header = next(sys.stdin).rstrip('\r\n').split('{args.delimiter}')" if args.header else ""
         parse_line = rf"rec = line.split('{args.delimiter}')"
 
+    locals = "_locals = locals()" if args.field_length is not None and args.field_length == 0 else ""
     wrapper = r"_print({})"
     if args.view:
         wrapper = r"view({}, headers=header)" if args.header else r"view({})"
     code = TEMPLATE_REC.format(
         imp=gen_import(args),
-        re_compile=re_compile,
-        parse_header=parse_header,
+        prepre='\n'.join(extend_codes([re_compile, parse_header, locals])),
         pre=gen_pre(args),
         parse_line=parse_line,
         loop_head=gen_loop_head_rec_csv(args),
@@ -598,6 +617,7 @@ def csv_handler(args):
     writer_opts = ", ".join(f'{k}={v}' for k, v in csv_writer_opts)
     parse_header = "header = next(reader)" if args.header else ""
 
+    locals = "_locals = locals()" if args.field_length is not None and args.field_length == 0 else ""
     wrapper = r"_write({}, writer=writer)"
     if args.view:
         wrapper = r"view({}, headers=header)" if args.header else r"view({})"
@@ -605,7 +625,7 @@ def csv_handler(args):
         imp=gen_import(args),
         reader_opts=reader_opts,
         writer_opts=writer_opts,
-        parse_header=parse_header,
+        prepre='\n'.join(extend_codes([parse_header, locals])),
         pre=gen_pre(args),
         loop_head=gen_loop_head_rec_csv(args),
         loop_filter=gen_loop_filter(args),
@@ -947,6 +967,11 @@ def main(argv=sys.argv[1:]):
             args.output_delimiter = args.delimiter
         else:
             args.output_delimiter = r'\t'
+
+    args.all_code_trees = list(parse_all_codes(args))
+    if args.command in ("rec", "csv") and args.field_length is None:
+        if check_field_variables_in_code(args):
+            args.field_length = 0
 
     args.colored = is_colored(args)
     if not args.output:
