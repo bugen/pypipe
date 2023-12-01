@@ -159,6 +159,14 @@ FORMAT_PRINT_FUNC = {
     "native": PRINT_FUNC_NATIVE, "n": PRINT_FUNC_NATIVE,
 }
 
+CONVERT_FUNC = r"""
+def _convert(val):
+    try:
+        return json.loads(val)
+    except:
+        return val
+"""
+
 COUNTER_POST = r"""
 for v, c in counter.most_common():
     v = "\t".join(str(x) for x in v) if isinstance(v, (list, set, tuple)) else v
@@ -370,6 +378,7 @@ def extend_codes(codes, comment=None):
 
 def is_json_needed(args):
     return ("json" in args and args.json or
+            args.convert or
             args.output_format in ("json", "j") or
             "field_type" in args and "j" in list(args.field_type.values()))
 
@@ -480,6 +489,8 @@ def gen_pre(args):
         codes.append(r"view = viewer.view")
     if is_json_needed(args):
         codes.append(JSON_FUNC)
+    if args.convert:
+        codes.append(CONVERT_FUNC)
     codes.append(FORMAT_PRINT_FUNC[args.output_format].format(sep=args.output_delimiter))
     if args.counter:
         codes.append(r"counter = Counter()")
@@ -527,6 +538,8 @@ def gen_loop_filter(args, level=1):
 
 def gen_loop_head_rec_csv(args):
     loop_head_codes = ["# LOOP HEAD"]
+    if args.convert:
+        loop_head_codes.append("rec = [_convert(v) for v in rec]")
     if args.field_type:
         # ex) if len(rec) > 16 and rec[16]: rec[16] = int(rec[16])
         for f, t in args.field_type.items():
@@ -556,6 +569,8 @@ def line_handler(args):
 
     def gen_loop_head():
         loop_head_codes = ["# LOOP HEAD"]
+        if args.convert:
+            loop_head_codes.append("l = line = _convert(line)")
         if args.json:
             loop_head_codes.append('dic = json.loads(line)')
             loop_head_codes.append('d = dic  #ABBREV')
@@ -639,6 +654,8 @@ def text_handler(args):
 
     def gen_pre_main():
         codes = []
+        if args.convert:
+            codes.append("text = _convert(text)")
         if args.json:
             codes.append("dic = json.loads(text)")
             codes.append('d = dic  #ABBREV')
@@ -659,6 +676,8 @@ def file_handler(args):
 
     def gen_loop_head():
         loop_head_codes = extend_codes(args.loop_heads, "LOOP HEAD")
+        if args.convert:
+            loop_head_codes.append("text = _convert(text)")
         if args.json:
             loop_head_codes.append("dic = json.loads(text)")
         return "\n".join(indent(c, 2) for c in loop_head_codes)
@@ -812,6 +831,10 @@ def main(argv=sys.argv[1:]):
         choices=FORMAT_PRINT_FUNC.keys(),
         default='default',
         dest="output_format",
+    )
+    common_parser.add_argument(
+        '--convert',
+        action="store_true",
     )
 
     ## LOOP OPTIONS

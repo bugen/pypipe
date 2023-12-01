@@ -1,0 +1,6 @@
+<class 'str'>,<class 'str'>,<class 'str'>,<class 'str'>,<class 'str'>,<class 'str'>
+<class 'str'>,<class 'int'>,<class 'str'>,<class 'int'>,<class 'str'>,<class 'str'>
+<class 'str'>,<class 'int'>,<class 'str'>,<class 'int'>,<class 'str'>,<class 'str'>
+<class 'str'>,<class 'int'>,<class 'str'>,<class 'int'>,<class 'str'>,<class 'str'>
+<class 'str'>,<class 'int'>,<class 'str'>,<class 'int'>,<class 'str'>,<class 'str'>
+<class 'str'>,<class 'int'>,<class 'str'>,<class 'int'>,<class 'str'>,<class 'str'>

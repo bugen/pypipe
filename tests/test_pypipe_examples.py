@@ -35,10 +35,12 @@ TEST_DATA_DIR = Path(__file__).resolve().parent / 'data'
     ('staff.csv', 'ppp_csv_1.txt', ['csv', '-O', 'quoting=csv.QUOTE_ALL']),
     ('staff.csv', 'ppp_csv_2.txt', ['csv', '-D', r'\t']),
     ('staff.csv', 'ppp_csv_3.txt', ['csv', '-H', '-f', 'int(f2) > 100']),
+    ('staff.csv', 'ppp_csv_4.txt', ['csv', '--convert', '[type(v) for v in rec]']),
     ('staff.txt', 'ppp_text_1.txt', ['text', "len(text)"]),
     ('staff.json', 'ppp_text_2.txt', ['text', '-j', 'dic["data"][0]']),
     ('staff.json', 'ppp_text_3.txt', ['text', '-j', '-L', '-Fj', '*dic["data"]']),
     ('staff.json', 'ppp_text_4.txt', ['text', '-j', '-v', '-knever', 'dic']),
+    ('staff.json', 'ppp_text_5.txt', ['text', '--convert', '-Fj', 'text["number_of_records"]']),
 ])
 def test_ppp_common(input_text_file_name, expected_text_file_name, command, capsys):
     ex_data: str
