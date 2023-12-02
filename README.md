@@ -15,6 +15,7 @@ ppp
 - [Installation](#installation)
 - [Basic usage and Examples](#basic-usage-and-examples)
 - [Automatic Import and Explicit Import](#automatic-import-and-explicit-import)
+- [Automatic type conversion `-t, --convert`](#automatic-type-conversion--t---convert)
 - [View mode `-v, --view`](#view-mode--v---view)
 - [Output formatting](#output-formatting)
 - [Counter `-c, --counter`](#counter--c---counter)
@@ -99,6 +100,14 @@ Pooh is 102 years old
 Bob is 24 years old
 ```
 
+> [!Tip]
+> You can now use field variables (f1, f2, f3, ...) without specifying the `--length` option.
+> ```
+> $ cat staff.txt | ppp rec f1,f2,f3
+> ```
+> Using field variables can make typing easier, but you have to know the number of fields in advance. Omitting the `--length` option makes it more convenient to use, but if you omit it, performance will be degraded. In tests, processing data with about 60,000 records and 23 items took 0.45 seconds when specifying the `--length` option, whereas omitting the `--length` option took about 0.75 seconds. To maintain performance, either use the `--length` option or retrieve fields from rec using indices like `rec[0], rec[1], rec[2], ...` without using field variables.
+
+
 When using the `-H, --header` option, it treats the first line as a header line and skips it. The header values can be obtained from a list named `header`, and you can access the values of each field using the format `dic["FIELD_NAME"]`.
 ```sh
 $ cat staff.txt |ppp rec -H 'rec[0], dic["Birth"]'
@@ -109,13 +118,16 @@ Pooh    1921-08-21
 Bob     1999-05-01
 ```
 
-By using the `-t FIELD_TYPES, --field-type FIELD_TYPES`, you can specify the type of each field, allowing you to convert values from 'str' to the specified type.
+By using the `--type FIELD_TYPES, --field-type FIELD_TYPES`, you can specify the type of each field, allowing you to convert values from 'str' to the specified type.
 ```sh
-$ echo 'Hello	100	10.2	True	{"id":100,"title":"sample"}'|ppp rec -l5 -t 2:i,3:f,4:b,5:j "type(f1),type(f2),type(f3),type(f4),type(f5)"
+$ echo 'Hello	100	10.2	True	{"id":100,"title":"sample"}'|ppp rec -l5 --type 2:i,3:f,4:b,5:j "type(f1),type(f2),type(f3),type(f4),type(f5)"
 <class 'str'>   <class 'int'>   <class 'float'> <class 'bool'>  <class 'dict'>
 ```
+> [!Tip]
+> When there is a header row in the data, using `--type, --field-type` often results in errors when attempting to convert the header row's item names to the specified types. In such cases, you can avoid errors by using the `-H, --header` option to skip the header row.
+
 > [!Note]
-> When there is a header row in the data, using `-t` often results in errors when attempting to convert the header row's item names to the specified types. In such cases, you can avoid errors by using the `-H, --header` option to skip the header row.
+> pypipe has added support for [automatic type conversion](#automatic-type-conversion--t---convert).
 
 You can change the delimiter by using the `-d DELIMITER, --delimiter DELIMITER` option.
 ```sh
@@ -135,7 +147,7 @@ $ echo 'AAA      BBB CCC    DDD' | ppp rec -d '\s+' rec[2]
 CCC
 ```
 
-> [!Note]
+> [!Tip]
 > `-S, --spaces` option has the same meaning as `-d '\s+'`.
 
 You can change the output delimiter by using the `-D DELIMITER, --output-delimiter DELIMITER` option.
@@ -184,7 +196,7 @@ $ cat staff.json |ppp text -j 'dic["data"][0]'
 {'Name': 'Simba', 'Weight': 250, 'Birth': '1994-06-15', 'Age': 29, 'Species': 'Lion', 'Class': 'Mammal'}
 ```
 
-> [!Note]
+> [!Tip]
 > You can also use `-j, --json` option in `line` and `file`.
 
 ### `| ppp file`
@@ -321,6 +333,35 @@ Using the explicit import format `from <module> import <function>` can be useful
 > See also [here](#import-modules--i-module---import-module) about `-i IMPORT, --import IMPORT` option.
 
 
+## Automatic type conversion `-t, --convert`
+When using the -t, --convert option, it automatically converts the input types.
+```console
+$ echo 'Hello	100	10.2	True	None	(1,2,3)	[1,2,3]	{1,2,3}	{"id":100,"title":"sample"}'|ppp rec --view -t "[(v, type(v)) for v in rec]"
+[Record 1]
+1  ('Hello', <class 'str'>)
+2  (100, <class 'int'>)
+3  (10.2, <class 'float'>)
+4  (True, <class 'bool'>)
+5  (None, <class 'NoneType'>)
+6  ((1, 2, 3), <class 'tuple'>)
+7  ([1, 2, 3], <class 'list'>)
+8  ({1, 2, 3}, <class 'set'>)
+9  ({'id': 100, 'title': 'sample'}, <class 'dict'>)
+```
+In the following example, there is no longer a need to explicitly convert to a numeric type like `int(rec[1]) > 100`; it now works with `rec[1] > 100`.
+```console
+$ cat staff.txt | ppp rec --convert --header --filter 'rec[1] > 100'
+Simba   250     1994-06-15      29      Lion    Mammal
+Dumbo   4000    1941-10-23      81      Elephant        Mammal
+```
+> [!Tip]
+> The `-t, --convert` option is available for use with line, rec, csv, text, and file.
+
+> [!Tip]
+> Automatic type conversion supports int, float, bool, None, json (dict, list, bool, null), and eval (tuple, list, set, dict).
+
+> [!Warning]
+> The `-t, --convert` option is convenient but may lead to a performance degradation when used. It should not be used if performance is crucial.
 
 ## View mode `-v, --view`
 When using the `-v, --view` option, the output is pretty printed with colored formatting. Data formats with many items such as CSV, TSV, JSON, and others can be hard to read in their raw format, making the View mode particularly useful when inspecting such data. In View mode, `dict`, `list` and `tuple` are formatted using the standard library's `pprint`.
