@@ -849,7 +849,7 @@ def main(argv=sys.argv[1:]):
         dest="output_format",
     )
     common_parser.add_argument(
-        '--convert',
+        '-t', '--convert',
         action="store_true",
     )
 
@@ -875,7 +875,7 @@ def main(argv=sys.argv[1:]):
         type=int,
     )
     rec_csv_parser.add_argument(
-        '-t', '--field-type',
+        '--type', '--field-type',
         dest="field_type",
         type=field_type,
         default={},
