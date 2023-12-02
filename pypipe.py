@@ -168,7 +168,7 @@ def _convert(val):
         return CONV_DIC[lower]
     elif PATTERN_NUMERIC.match(val):
         return _deserialize(val, [int, float])
-    elif val.startswith(('{', '[')):
+    elif val.startswith(('{', '[', '(')):
         return _deserialize(val, [json.loads, eval])
     return val
 """

@@ -1,0 +1,11 @@
+[Record 1]
+1  ('Hello', <class 'str'>)
+2  (100, <class 'int'>)
+3  (10.2, <class 'float'>)
+4  (True, <class 'bool'>)
+5  (None, <class 'NoneType'>)
+6  ((1, 2, 3), <class 'tuple'>)
+7  ([1, 2, 3], <class 'list'>)
+8  ({1, 2, 3}, <class 'set'>)
+9  ({'id': 100, 'title': 'sample'}, <class 'dict'>)
+
