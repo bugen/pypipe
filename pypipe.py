@@ -129,15 +129,6 @@ for i, line in enumerate(sys.stdin, 1):
 {post}
 """
 
-JSON_FUNC = r"""
-def _json(v):
-    if isinstance(v, (dict, list, tuple)):
-        v = json.dumps(v)
-    elif not isinstance(v, str):
-        v = str(v)
-    return v
-"""
-
 PRINT_FUNC = r"""
 def _print(*args, sep='{sep}'):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
@@ -148,7 +139,7 @@ def _print(*args, sep='{sep}'):
 
 PRINT_FUNC_JSON = r"""
 def _print(*args, sep='{sep}'):
-    print(sep.join(_json(v) for v in args))
+    print(sep.join(json.dumps(v) for v in args))
 """
 
 PRINT_FUNC_NATIVE = r"_print = partial(print, sep='{sep}')"
@@ -503,8 +494,6 @@ def gen_pre(args):
         codes.append(VIEW_TMPL)
         codes.append(rf"viewer = Viewer(colored={args.colored})")
         codes.append(r"view = viewer.view")
-    if is_json_needed(args):
-        codes.append(JSON_FUNC)
     if args.convert:
         codes.append(CONVERT_FUNC)
     codes.append(FORMAT_PRINT_FUNC[args.output_format].format(sep=args.output_delimiter))
