@@ -160,11 +160,26 @@ FORMAT_PRINT_FUNC = {
 }
 
 CONVERT_FUNC = r"""
+PATTERN_NUMERIC = re.compile(r'^[\d.-]+$')
+CONV_DIC = {"true": True, "false": False, "none": None, "null": None}
+
+def _deserialize(val, funcs):
+    for func in funcs:
+        try:
+            return func(val)
+        except:
+            continue
+    return val
+
 def _convert(val):
-    try:
-        return json.loads(val)
-    except:
-        return val
+    lower = val.lower()
+    if lower in CONV_DIC:
+        return CONV_DIC[lower]
+    elif PATTERN_NUMERIC.match(val):
+        return _deserialize(val, [int, float])
+    elif val.startswith(('{', '[')):
+        return _deserialize(val, [json.loads, eval])
+    return val
 """
 
 COUNTER_POST = r"""
@@ -378,7 +393,6 @@ def extend_codes(codes, comment=None):
 
 def is_json_needed(args):
     return ("json" in args and args.json or
-            args.convert or
             args.output_format in ("json", "j") or
             "field_type" in args and "j" in list(args.field_type.values()))
 
@@ -392,6 +406,8 @@ def get_imports(args):
         imports.add("from unicodedata import east_asian_width")
     if is_json_needed(args):
         imports.add("json")
+    if args.convert:
+        imports.update({"re", "json"})
     if args.counter:
         imports.add("from collections import Counter")
     # REC
