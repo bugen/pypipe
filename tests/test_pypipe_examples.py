@@ -33,6 +33,8 @@ TEST_DATA_DIR = Path(__file__).resolve().parent / 'data'
     ('staff.txt', 'ppp_rec_16.txt', ['rec', '-v', '-H', '-knever']),
     ('staff.txt', 'ppp_rec_17.txt', ['rec', 'f3,f2,f1']),
     ('echo_rec_4.txt', 'ppp_rec_18.txt', ['rec', '--view', '-t', '[(v, type(v)) for v in rec]']),
+    ('staff.txt', 'ppp_rec_19.txt', ['rec', 'print(f1,f2,f3)']),
+    ('staff.txt', 'ppp_rec_20.txt', ['rec', '-H', '-t', '-c', 'counter["TOTAL WEIGHT"] += f2']),
     ('staff.csv', 'ppp_csv_1.txt', ['csv', '-O', 'quoting=csv.QUOTE_ALL']),
     ('staff.csv', 'ppp_csv_2.txt', ['csv', '-D', r'\t']),
     ('staff.csv', 'ppp_csv_3.txt', ['csv', '-H', '-f', 'int(f2) > 100']),

@@ -267,6 +267,23 @@ def check_field_variables_in_code(args):
     return False
 
 
+def check_wrapping_is_need(args):
+    codes = extend_codes(args.codes)
+    if not codes:
+        return True
+    try:
+        tree = ast.parse(codes[-1])
+    except SyntaxError:
+        return True
+    if not isinstance(tree.body[0], ast.Expr):
+        return False
+    if not isinstance(tree.body[0].value, ast.Call):
+        return True
+    if not isinstance(tree.body[0].value.func, ast.Name):
+        return True
+    return tree.body[0].value.func.id not in ('print', '_print')
+
+
 def is_colored(args):
     if args.color == 'always':
         return True
@@ -1000,6 +1017,9 @@ def main(argv=sys.argv[1:]):
     if args.command in ("rec", "csv") and args.field_length is None:
         if check_field_variables_in_code(args):
             args.field_length = 0
+
+    if not check_wrapping_is_need(args):
+        args.no_wrapping = True
 
     args.colored = is_colored(args)
     if not args.output:
