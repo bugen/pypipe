@@ -55,7 +55,7 @@ alias ppp="wasmer run bugen/pypipe -- "
 
 ### `| ppp line`
 
-Processing line by line. You can get the line string as `line` or `l` and the line number as `i`.
+Processing line-by-line. You can access the current line as `line` or `l`, and the current line number as `i`.
 
 ```sh
 $ cat staff.txt |ppp 'i, line.upper()'
