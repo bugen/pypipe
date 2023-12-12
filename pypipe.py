@@ -301,8 +301,6 @@ def paging_enabled(args):
     if not sys.stdout.isatty():
         return False
     if args.paging is not None:
-
-        print(args.paging)
         return args.paging
     return environ.get('PYPIPE_PAGER_ENABLED', 'true').lower() == 'true'
 
