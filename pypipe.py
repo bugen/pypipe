@@ -21,6 +21,7 @@ import ast
 import atexit
 import importlib.util
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -294,16 +295,33 @@ def is_colored(args):
     return sys.stdout.isatty()
 
 
-def enable_pager(args):
+def paging_enabled(args):
+    if args.output:
+        return False
     if not sys.stdout.isatty():
         return False
-    if environ.get('PYPIPE_PAGER_ENABLED', 'true').lower() == 'false':
-        return False
-    pager = environ.get('PYPIPE_PAGER', 'less -R -F')
+    if args.paging is not None:
+
+        print(args.paging)
+        return args.paging
+    return environ.get('PYPIPE_PAGER_ENABLED', 'true').lower() == 'true'
+
+
+def select_pager(args):
+    pager = environ.get('PYPIPE_PAGER') or environ.get('PAGER') or 'less'
     if args.print:
-        pager = environ.get('PYPIPE_PRINT_PAGER', pager)
+        pager = environ.get('PYPIPE_PRINT_PAGER') or pager
     elif args.view:
-        pager = environ.get('PYPIPE_VIEW_PAGER', pager)
+        pager = environ.get('PYPIPE_VIEW_PAGER') or pager
+    if pager.split()[0] == 'less':
+        pager = pager + ' ' + environ.get('PYPIPE_LESS_OPTS', ' -R -F')
+    return pager
+
+
+def enable_pager(args):
+    pager = select_pager(args)
+    if shutil.which(pager.split()[0]) is None:
+        return False
     proc = None
     stdout_save = sys.stdout
     stat = {"is_exiting": False}
@@ -858,6 +876,18 @@ def main(argv=sys.argv[1:]):
         '-t', '--convert',
         action="store_true",
     )
+    common_parser.add_argument(
+        '--paging',
+        dest="paging",
+        action="store_const",
+        const=True,
+    )
+    common_parser.add_argument(
+        '--no-paging',
+        dest="paging",
+        action="store_const",
+        const=False,
+    )
 
     ## LOOP OPTIONS
     loop_parser = argparse.ArgumentParser(add_help=False)
@@ -1022,7 +1052,7 @@ def main(argv=sys.argv[1:]):
         args.no_wrapping = True
 
     args.colored = is_colored(args)
-    if not args.output:
+    if paging_enabled(args):
         enable_pager(args)
 
     args.handler(args)
