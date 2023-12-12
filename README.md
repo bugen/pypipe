@@ -872,7 +872,12 @@ $ seq 5 |ppp -i math 'line, math.sqrt(int(line))'
 ```
 
 ## Pager
-pypipe, by default, pipes the output to a pager. The default pager command is `less -R -F` (recommended, tested). If you want to disable the pager, you can set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can change the pager command by setting the `PYPIPE_PAGER` environment variable.
+
+### Enable/Disable Pager
+In pypipe, the pager is automatically enabled if the standard output is a tty. To disable the pager, set the `PYPIPE_PAGER_ENABLED` environment variable to `false`. Additionally, you can enable/disable the pager by specifying the `--paging` or `--no-paging` options. This takes precedence over the `PYPIPE_PAGER_ENABLED` setting. However, if the standard output is not a tty, specifying `--paging` will not enable the pager.
+
+### Pager command
+The default pager command is `less` (recommended, tested). You can change the pager command by setting the `PYPIPE_PAGER` environment variable. If `less` is specified as the PAGER, pypipe automatically adds the options set in the `PYPIPE_LESS_OPTS` environment variable. The default value for PYPIPE_LESS_OPTS is `-R -F`.
 
 ### Pager for `-p, --print`
 > [!Warning]
