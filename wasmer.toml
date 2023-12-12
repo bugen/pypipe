@@ -1,6 +1,6 @@
 [package]
 name = "bugen/pypipe"
-version = "0.3.0"
+version = "0.4.0"
 description = "pypipe in Wasmer"
 repository = "https://github.com/bugen/pypipe"
 readme = "README.md"
