@@ -39,5 +39,8 @@ pypipe-ppp = "pypipe:main"
 # https://github.com/bugen/pypipe/pull/8#discussion_r1379798279
 ppp = "pypipe:main"
 
+[tool.hatch.build.targets.wheel]
+packages = ["pypipe.py"]
+
 [tool.hatch.version]
 path = "pypipe.py"
