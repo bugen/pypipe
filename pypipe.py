@@ -27,7 +27,7 @@ import subprocess
 import sys
 from os import chmod, environ
 
-__version__ = "0.4.1a0"
+__version__ = "0.4.1"
 
 
 INDENT = " " * 4
