@@ -55,7 +55,7 @@ alias ppp="wasmer run bugen/pypipe -- "
 
 ### `| ppp line`
 
-Processing line by line. You can get the line string as `line` or `l` and the line number as `i`.
+Processing line-by-line. You can access the current line as `line` or `l`, and the current line number as `i`.
 
 ```sh
 $ cat staff.txt |ppp 'i, line.upper()'
@@ -67,7 +67,7 @@ $ cat staff.txt |ppp 'i, line.upper()'
 6       BOB     0       1999-05-01      24      SPONGE  DEMOSPONGE
 ```
 
-Using the `-j, --json` option allows you to decode each line as JSON. The decoded result can be obtained as a dictionary `dic`.
+Using the `-j, --json` option allows you to decode each line as JSON. The decoded result can be obtained as `dic`.
 ```sh
 $ cat staff.jsonlines.txt |ppp -j 'dic["Name"]'
 Simba
